@@ -69,13 +69,13 @@ public class MapController { // 地图控制器类定义
     
     /**
      * 规划路线
-     * 对应HTTP POST /api/map/route 请求
+     * 对应HTTP GET /api/map/route 请求（修改为GET方法解决405错误）
      * 
      * @param start 起点参数，从请求参数中提取
      * @param end 终点参数，从请求参数中提取
      * @return 路线规划结果JSON数据
      */
-    @PostMapping("/route") // 映射POST请求到/api/map/route路径
+    @GetMapping("/route") // 修改为GET请求以解决405 Method Not Allowed错误
     public Route planRoute(@RequestParam String start, @RequestParam String end) { // 控制器方法：路线规划
         return routeService.planRoute(start, end); // 调用业务层方法进行路线规划
     }

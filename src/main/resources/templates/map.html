@@ -1,330 +1,612 @@
 <!DOCTYPE html>
-<!-- 汽车地图导航系统前端页面 - 用户交互界面 -->
 <html lang="zh-CN">
 <head>
-    <!-- 页面元数据配置 -->
-    <meta charset="UTF-8"> <!-- 字符编码设置 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 响应式设计配置 -->
-    <title>汽车地图导航系统</title> <!-- 页面标题 -->
-    
-    <!-- 页面样式定义 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能汽车导航系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* 页面整体样式 */
+        :root {
+            --primary-color: #00ffff;
+            --secondary-color: #0066ff;
+            --background-dark: #0a0a1a;
+            --card-bg: #121224;
+            --text-primary: #ccc;
+            --text-secondary: #a0a0c0;
+            --accent-glow: 0 0 15px rgba(0, 255, 255, 0.5);
+            --border-gradient: linear-gradient(45deg, #00ffff, #0066ff);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif; /* 字体设置 */
-            margin: 0; /* 外边距清零 */
-            padding: 20px; /* 内边距设置 */
-            background-color: #f5f5f5; /* 背景颜色 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 102, 255, 0.1) 0%, transparent 20%);
+            position: relative;
+            overflow-x: hidden;
         }
-        
-        /* 容器样式 */
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(transparent 50%, rgba(10, 10, 26, 0.8) 100%),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 255, 255, 0.03) 2px,
+                    rgba(0, 255, 255, 0.03) 4px
+                );
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(18, 18, 36, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 2px;
+            background: var(--border-gradient);
+            border-radius: 2px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: var(--accent-glow);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
         .container {
-            max-width: 1200px; /* 最大宽度限制 */
-            margin: 0 auto; /* 居中对齐 */
-            background: white; /* 背景色 */
-            padding: 20px; /* 内边距 */
-            border-radius: 8px; /* 圆角效果 */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); /* 阴影效果 */
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
         }
-        
-        /* 标题样式 */
-        h1 {
-            color: #333; /* 文字颜色 */
-            text-align: center; /* 居中对齐 */
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
-        
-        /* 面板样式 */
-        .panel {
-            margin: 20px 0; /* 外边距 */
-            padding: 15px; /* 内边距 */
-            border: 1px solid #ddd; /* 边框 */
-            border-radius: 5px; /* 圆角 */
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
-        
-        /* 表单组样式 */
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.2);
+            border-color: rgba(0, 255, 255, 0.5);
+        }
+
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header i {
+            font-size: 1.8rem;
+            margin-right: 15px;
+            color: var(--primary-color);
+            text-shadow: var(--accent-glow);
+        }
+
+        .card-header h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+
         .form-group {
-            margin: 10px 0; /* 外边距 */
+            margin-bottom: 20px;
         }
-        
-        /* 标签样式 */
-        label {
-            display: block; /* 块级元素 */
-            margin-bottom: 5px; /* 下外边距 */
-            font-weight: bold; /* 粗体 */
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
         }
-        
-        /* 输入框样式 */
-        input, select {
-            width: 100%; /* 宽度100% */
-            padding: 8px; /* 内边距 */
-            border: 1px solid #ccc; /* 边框 */
-            border-radius: 4px; /* 圆角 */
-            box-sizing: border-box; /* 盒模型 */
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
         }
-        
-        /* 按钮样式 */
-        button {
-            background-color: #007bff; /* 背景色 */
-            color: white; /* 文字颜色 */
-            padding: 10px 20px; /* 内边距 */
-            border: none; /* 无边框 */
-            border-radius: 4px; /* 圆角 */
-            cursor: pointer; /* 鼠标手势 */
-            margin: 5px; /* 外边距 */
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
         }
-        
-        /* 按钮悬停效果 */
-        button:hover {
-            background-color: #0056b3; /* 悬停背景色 */
+
+        .form-control::placeholder {
+            color: rgba(160, 160, 192, 0.6);
         }
-        
-        /* 车辆列表样式 */
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: var(--background-dark);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--accent-glow);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .status-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+
+        .status-select option {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            padding: 10px;
+        }
+
+        .status-select option[value="active"] {
+            color: #00ff64;
+            font-weight: 600;
+        }
+
+        .status-select option[value="inactive"] {
+            color: #ff6400;
+            font-weight: 600;
+        }
+
+        .status-select option[value="maintenance"] {
+            color: #ffff00;
+            font-weight: 600;
+        }
+
         .car-list {
-            margin-top: 20px; /* 上外边距 */
+            margin-top: 20px;
         }
-        
-        /* 车辆项目样式 */
+
         .car-item {
-            padding: 10px; /* 内边距 */
-            border: 1px solid #eee; /* 边框 */
-            margin: 5px 0; /* 外边距 */
-            border-radius: 4px; /* 圆角 */
-            background-color: #f9f9f9; /* 背景色 */
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            line-height: 1.8;
         }
-        
-        /* 路线信息样式 */
+
+        .car-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 255, 255, 0.3);
+            transform: translateX(5px);
+        }
+
+        .car-item div {
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .car-item div:last-child {
+            margin-bottom: 0;
+        }
+
+        .car-item strong {
+            color: var(--primary-color);
+            display: inline-block;
+            width: 80px;
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-active {
+            background: rgba(0, 255, 100, 0.2);
+            color: #00ff64;
+            border: 1px solid rgba(0, 255, 100, 0.4);
+        }
+
+        .status-inactive {
+            background: rgba(255, 100, 0, 0.2);
+            color: #ff6400;
+            border: 1px solid rgba(255, 100, 0, 0.4);
+        }
+
+        .status-maintenance {
+            background: rgba(255, 255, 0, 0.2);
+            color: #ffff00;
+            border: 1px solid rgba(255, 255, 0, 0.4);
+        }
+
         .route-info {
-            background-color: #e7f3ff; /* 背景色 */
-            padding: 15px; /* 内边距 */
-            border-radius: 4px; /* 圆角 */
-            margin: 10px 0; /* 外边距 */
+            background: rgba(0, 102, 255, 0.1);
+            border: 1px solid rgba(0, 102, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .route-info h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 1.3rem;
+        }
+
+        .route-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .route-detail:last-child {
+            border-bottom: none;
+        }
+
+        .route-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .route-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 
 <body>
-    <!-- 页面主要内容容器 -->
+    <div class="header">
+        <h1><i class="fas fa-car"></i> 智能汽车导航系统</h1>
+        <p>实时车辆监控 | 智能路径规划 | 云端数据同步</p>
+    </div>
+
     <div class="container">
-        <!-- 页面主标题 -->
-        <h1>🚗 汽车地图导航系统</h1>
-        
-        <!-- 车辆位置更新面板 -->
-        <div class="panel">
-            <h2>📍 更新车辆位置</h2>
-            
-            <!-- 车牌号输入 -->
-            <div class="form-group">
-                <label>车牌号:</label>
-                <input type="text" id="carName" placeholder="如: 苏K12345">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-location-dot"></i>
+                <h2>车辆定位更新</h2>
             </div>
-            
-            <!-- 纬度输入 -->
             <div class="form-group">
-                <label>纬度:</label>
-                <input type="number" id="latitude" step="0.0001" placeholder="32.3931">
+                <label><i class="fas fa-hashtag"></i> 车牌号码</label>
+                <input type="text" id="carName" class="form-control" placeholder="请输入车牌号 如: 苏K12345">
             </div>
-            
-            <!-- 经度输入 -->
             <div class="form-group">
-                <label>经度:</label>
-                <input type="number" id="longitude" step="0.0001" placeholder="119.4128">
+                <label><i class="fas fa-globe"></i> 纬度坐标</label>
+                <input type="number" id="latitude" class="form-control" step="0.0001" placeholder="32.3931">
             </div>
-            
-            <!-- 状态选择 -->
             <div class="form-group">
-                <label>状态:</label>
-                <select id="status">
-                    <option value="active">运行中</option>
-                    <option value="inactive">停止</option>
-                    <option value="maintenance">维修中</option>
+                <label><i class="fas fa-globe-americas"></i> 经度坐标</label>
+                <input type="number" id="longitude" class="form-control" step="0.0001" placeholder="119.4128">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-tachometer-alt"></i> 车辆状态</label>
+                <select id="status" class="form-control status-select">
+                    <option value="active">🟢 运行中</option>
+                    <option value="inactive">🔴 停止</option>
+                    <option value="maintenance">🟡 维修中</option>
                 </select>
             </div>
-            
-            <!-- 更新位置按钮 -->
-            <button onclick="updateLocation()">更新位置</button>
+            <button class="btn" onclick="updateLocation()">
+                <i class="fas fa-sync-alt"></i> 更新位置
+            </button>
         </div>
 
-        <!-- 路线规划面板 -->
-        <div class="panel">
-            <h2>🗺️ 路线规划</h2>
-            
-            <!-- 起点输入 -->
-            <div class="form-group">
-                <label>起点:</label>
-                <input type="text" id="startPoint" placeholder="如: 扬州">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-route"></i>
+                <h2>智能路径规划</h2>
             </div>
-            
-            <!-- 终点输入 -->
             <div class="form-group">
-                <label>终点:</label>
-                <input type="text" id="endPoint" placeholder="如: 南京">
+                <label><i class="fas fa-play-circle"></i> 起始地点</label>
+                <input type="text" id="startPoint" class="form-control" placeholder="请输入起点 如: 扬州">
             </div>
-            
-            <!-- 规划路线按钮 -->
-            <button onclick="planRoute()">规划路线</button>
-            
-            <!-- 路线结果显示区域 -->
+            <div class="form-group">
+                <label><i class="fas fa-flag-checkered"></i> 目标地点</label>
+                <input type="text" id="endPoint" class="form-control" placeholder="请输入终点 如: 南京">
+            </div>
+            <button class="btn" onclick="planRoute()">
+                <i class="fas fa-brain"></i> 智能规划
+            </button>
             <div id="routeResult"></div>
         </div>
 
-        <!-- 车辆列表面板 -->
-        <div class="panel">
-            <h2>📋 车辆列表</h2>
-            
-            <!-- 功能按钮 -->
-            <button onclick="loadCars()">刷新车辆列表</button>
-            <button onclick="loadActiveCars()">查看运行中车辆</button>
-            
-            <!-- 车辆列表显示区域 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-car-side"></i>
+                <h2>车队实时监控</h2>
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="loadCars()">
+                    <i class="fas fa-sync"></i> 全部车辆
+                </button>
+                <button class="btn" onclick="loadActiveCars()">
+                    <i class="fas fa-bolt"></i> 运行中
+                </button>
+            </div>
             <div id="carList" class="car-list"></div>
         </div>
     </div>
 
-    <!-- JavaScript逻辑部分 -->
     <script>
-        /**
-         * 更新车辆位置功能
-         * 通过AJAX调用后端API更新车辆GPS位置信息
-         */
         function updateLocation() {
-            // 构造车辆数据对象
             const carData = {
-                carName: document.getElementById('carName').value, // 获取车牌号
-                latitude: parseFloat(document.getElementById('latitude').value), // 获取纬度
-                longitude: parseFloat(document.getElementById('longitude').value), // 获取经度
-                status: document.getElementById('status').value // 获取状态
+                carName: document.getElementById('carName').value,
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value),
+                status: document.getElementById('status').value
             };
 
-            // 发送POST请求到后端API
             fetch('/api/map/location', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json', // 设置请求头
-                },
-                body: JSON.stringify(carData) // 将数据转换为JSON格式
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(carData)
             })
-            .then(response => response.json()) // 解析响应为JSON
+            .then(response => response.json())
             .then(data => {
-                alert('车辆位置更新成功！'); // 显示成功提示
-                loadCars(); // 刷新车辆列表
+                showMessage('车辆位置更新成功！', 'success');
+                loadCars();
             })
             .catch(error => {
-                console.error('Error:', error); // 输出错误信息
-                alert('更新失败：' + error.message); // 显示错误提示
+                showMessage('更新失败：' + error.message, 'error');
             });
         }
 
-        /**
-         * 路线规划功能
-         * 调用后端路线规划API获取导航信息
-         */
         function planRoute() {
-            // 获取起点和终点输入值
             const start = document.getElementById('startPoint').value;
             const end = document.getElementById('endPoint').value;
 
-            // 输入验证
             if (!start || !end) {
-                alert('请输入起点和终点');
+                showMessage('请输入起点和终点', 'warning');
                 return;
             }
 
-            // 发送路线规划请求
             fetch(`/api/map/route?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
-            .then(response => response.json()) // 解析响应
+            .then(response => response.json())
             .then(data => {
-                // 显示路线规划结果
                 document.getElementById('routeResult').innerHTML = `
-                    <div class="route-info">
-                        <h3>路线信息</h3>
-                        <p><strong>距离:</strong> ${data.distance} 公里</p>
-                        <p><strong>路线:</strong> ${data.routeInfo}</p>
-                        <p><strong>起点:</strong> ${data.startPoint}</p>
-                        <p><strong>终点:</strong> ${data.endPoint}</p>
+                    <div class="route-info pulse">
+                        <h3><i class="fas fa-map-signs"></i> 最优路径</h3>
+                        <div class="route-detail">
+                            <span class="route-label"><i class="fas fa-road"></i> 行驶距离</span>
+                            <span class="route-value">${data.distance} 公里</span>
+                        </div>
+                        <div class="route-detail">
+                            <span class="route-label"><i class="fas fa-play"></i> 起点</span>
+                            <span class="route-value">${data.startPoint}</span>
+                        </div>
+                        <div class="route-detail">
+                            <span class="route-label"><i class="fas fa-flag"></i> 终点</span>
+                            <span class="route-value">${data.endPoint}</span>
+                        </div>
+                        <div class="route-detail">
+                            <span class="route-label"><i class="fas fa-info-circle"></i> 路线详情</span>
+                            <span class="route-value">${data.routeInfo}</span>
+                        </div>
                     </div>
                 `;
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('路线规划失败：' + error.message);
+                showMessage('路线规划失败：' + error.message, 'error');
             });
         }
 
-        /**
-         * 加载所有车辆列表
-         * 从后端获取完整的车辆位置信息
-         */
         function loadCars() {
-            fetch('/api/map/locations') // 发送GET请求获取所有车辆
+            fetch('/api/map/locations')
             .then(response => response.json())
-            .then(data => {
-                displayCars(data); // 显示车辆列表
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('加载车辆列表失败');
-            });
+            .then(data => displayCars(data))
+            .catch(error => showMessage('加载车辆列表失败', 'error'));
         }
 
-        /**
-         * 加载运行中车辆列表
-         * 从后端获取状态为active的车辆信息
-         */
         function loadActiveCars() {
-            fetch('/api/map/active-cars') // 发送GET请求获取活跃车辆
+            fetch('/api/map/active-cars')
             .then(response => response.json())
-            .then(data => {
-                displayCars(data); // 显示车辆列表
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('加载运行中车辆失败');
-            });
+            .then(data => displayCars(data))
+            .catch(error => showMessage('加载运行中车辆失败', 'error'));
         }
 
-        /**
-         * 显示车辆列表
-         * 将车辆数据渲染为HTML列表
-         */
         function displayCars(cars) {
             const carList = document.getElementById('carList');
-            
-            // 处理空数据情况
             if (cars.length === 0) {
-                carList.innerHTML = '<p>暂无车辆数据</p>';
+                carList.innerHTML = '<p style="text-align:center;color:#a0a0c0;padding:20px;">暂无车辆数据</p>';
                 return;
             }
 
-            // 渲染车辆列表HTML
             carList.innerHTML = cars.map(car => `
                 <div class="car-item">
-                    <strong>车牌号:</strong> ${car.carName} <br>
-                    <strong>位置:</strong> (${car.latitude}, ${car.longitude}) <br>
-                    <strong>状态:</strong> ${getStatusText(car.status)} <br>
-                    <strong>更新时间:</strong> ${new Date().toLocaleString()}
+                    <div><strong><i class="fas fa-car"></i> 车牌:</strong> ${car.carName}</div>
+                    <div><strong><i class="fas fa-map-marker-alt"></i> 位置:</strong> (${car.latitude}, ${car.longitude})</div>
+                    <div><strong><i class="fas fa-heartbeat"></i> 状态:</strong> 
+                        <span class="status-badge status-${car.status}">
+                            ${getStatusText(car.status)}
+                        </span>
+                    </div>
+                    <div><strong><i class="fas fa-clock"></i> 时间:</strong> ${new Date().toLocaleString()}</div>
                 </div>
             `).join('');
         }
 
-        /**
-         * 获取状态文本显示
-         * 将英文状态码转换为中文显示
-         */
         function getStatusText(status) {
             const statusMap = {
-                'active': '🟢 运行中',
-                'inactive': '🔴 停止',
-                'maintenance': '🟡 维修中'
+                'active': '运行中',
+                'inactive': '停止',
+                'maintenance': '维修中'
             };
             return statusMap[status] || status;
         }
 
-        /**
-         * 页面加载完成后自动执行
-         * 初始化车辆列表显示
-         */
+        function showMessage(message, type) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                animation: slideIn 0.3s ease;
+            `;
+            
+            switch(type) {
+                case 'success':
+                    toast.style.background = 'linear-gradient(45deg, #00ff64, #00cc52)';
+                    break;
+                case 'error':
+                    toast.style.background = 'linear-gradient(45deg, #ff4757, #ff3742)';
+                    break;
+                case 'warning':
+                    toast.style.background = 'linear-gradient(45deg, #ffa502, #ff9500)';
+                    break;
+            }
+            
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'exclamation-triangle'}"></i> ${message}`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
         window.onload = function() {
-            loadCars(); // 页面加载时自动获取车辆列表
+            loadCars();
         };
     </script>
 </body>

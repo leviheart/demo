@@ -23,12 +23,12 @@ public class MapViewController { // 地图视图控制器类定义
     
     /**
      * 处理地图页面GET请求
-     * 当用户访问 http://localhost:8080/map 时调用此方法
+     * 当用户访问 http://localhost:8081/map 时调用此方法
      * 
      * @return 视图名称"map"，对应templates/map.html模板文件
      */
     @GetMapping("/map") // 映射GET请求到/map路径
     public String mapView() { // 控制器方法：处理地图页面请求
-        return "map"; // 返回视图名称，Spring会自动解析为templates/map.html
+        return "index"; // 返回Vue3构建后的静态页面
     }
 }
