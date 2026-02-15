@@ -1,70 +1,127 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Maven项目配置文件 - 定义项目依赖和构建配置 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion> <!-- 指定POM模型版本 -->
-	<parent> <!-- 定义父项目，继承Spring Boot的默认配置 -->
-		<groupId>org.springframework.boot</groupId> <!-- 父项目的组ID -->
-		<artifactId>spring-boot-starter-parent</artifactId> <!-- 父项目的构件ID -->
-		<version>3.2.0</version> <!-- 父项目的版本号 -->
-		<relativePath/> <!-- 父项目的相对路径，空值表示从仓库查找 -->
+	
+	<!-- POM模型版本 -->
+	<modelVersion>4.0.0</modelVersion>
+	
+	<!-- 父项目配置：继承Spring Boot默认配置 -->
+	<parent>
+		<!-- Spring Boot父项目组ID -->
+		<groupId>org.springframework.boot</groupId>
+		<!-- Spring Boot父项目构件ID -->
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<!-- Spring Boot版本号 -->
+		<version>3.2.0</version>
+		<!-- 父项目相对路径 -->
+		<relativePath/>
 	</parent>
-	<groupId>tw_six</groupId> <!-- 当前项目的组ID -->
-	<artifactId>demo</artifactId> <!-- 当前项目的构件ID -->
-	<version>0.0.1-SNAPSHOT</version> <!-- 当前项目的版本号 -->
+	
+	<!-- 当前项目基本信息 -->
+	<groupId>tw_six</groupId> <!-- 项目组ID -->
+	<artifactId>demo</artifactId> <!-- 项目构件ID -->
+	<version>0.0.1-SNAPSHOT</version> <!-- 项目版本号 -->
 	<name>demo</name> <!-- 项目名称 -->
 	<description>Demo project for Spring Boot</description> <!-- 项目描述 -->
-	<properties> <!-- 项目属性配置 -->
-		<java.version>17</java.version> <!-- 指定Java版本为17 -->
+	
+	<!-- 项目属性配置 -->
+	<properties>
+		<!-- 指定Java版本为17 -->
+		<java.version>17</java.version>
 	</properties>
-	<dependencies> <!-- 项目依赖配置 -->
-		<dependency> <!-- MySQL连接器依赖 -->
-			<groupId>com.mysql</groupId> <!-- 依赖的组ID -->
-			<artifactId>mysql-connector-j</artifactId> <!-- 依赖的构件ID -->
-			<scope>runtime</scope> <!-- 依赖作用域，runtime表示运行时需要 -->
+	
+	<!-- 项目依赖配置 -->
+	<dependencies>
+		
+		<!-- MySQL连接器依赖 - 数据库连接支持 -->
+		<!-- 提供与MySQL数据库的JDBC连接能力 -->
+		<!-- 运行时依赖，仅在运行时需要 -->
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
 		</dependency>
-		<dependency> <!-- Spring Boot Web启动器依赖 -->
+		
+		<!-- Spring Boot Web启动器 - Web功能支持 -->
+		<!-- 提供Spring MVC、Tomcat内嵌服务器、RESTful API等Web功能 -->
+		<!-- 核心依赖，提供Web应用基础框架 -->
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-		<dependency> <!-- Spring Boot JPA启动器依赖 -->
+		
+		<!-- Spring Boot JPA启动器 - 数据持久化支持 -->
+		<!-- 提供JPA/Hibernate ORM框架，简化数据库操作 -->
+		<!-- 实现对象关系映射和数据访问层自动化 -->
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-		<dependency> <!-- Spring Boot Validation启动器依赖 -->
+		
+		<!-- Spring Boot Validation启动器 - 数据验证支持 -->
+		<!-- 提供Bean Validation API支持，用于数据校验 -->
+		<!-- 支持@NotBlank、@Email等注解验证 -->
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		<dependency> <!-- H2数据库依赖，作为运行时依赖 -->
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
+		
+		<!-- Spring Boot Thymeleaf启动器 - 模板引擎支持 -->
+		<!-- 提供服务端HTML模板渲染能力 -->
+		<!-- 用于生成动态HTML页面 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
-		<dependency> <!-- Lombok依赖，简化代码 -->
+		
+		<!-- Lombok依赖 - 代码简化工具 -->
+		<!-- 自动生成getter/setter/toString等标准方法 -->
+		<!-- 减少样板代码，提高开发效率 -->
+		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<optional>true</optional> <!-- 可选依赖，不会传递给使用此项目的其他项目 -->
+			<optional>true</optional>
 		</dependency>
-		<dependency> <!-- 测试依赖 -->
+		
+		<!-- Spring Boot测试启动器 - 测试支持 -->
+		<!-- 提供JUnit、Mockito等测试框架集成 -->
+		<!-- 仅在测试时使用 -->
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope> <!-- 仅在测试时使用 -->
+			<scope>test</scope>
 		</dependency>
+		
 	</dependencies>
 
-	<build> <!-- 构建配置 -->
-		<plugins> <!-- 插件配置 -->
-			<plugin> <!-- Spring Boot构建插件 -->
+	<!-- 构建配置 -->
+	<build>
+		<!-- 插件配置 -->
+		<plugins>
+			
+			<!-- Spring Boot构建插件 -->
+			<!-- 提供可执行JAR打包、运行等构建功能 -->
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId> <!-- 插件ID -->
-				<configuration> <!-- 插件配置 -->
-					<excludes> <!-- 排除配置 -->
-						<exclude> <!-- 排除Lombok依赖 -->
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				
+				<!-- 插件配置 -->
+				<configuration>
+					<!-- 排除配置 -->
+					<excludes>
+						<!-- 排除Lombok依赖 -->
+						<!-- 避免将Lombok打包到最终JAR中 -->
+						<exclude>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
 				</configuration>
+				
 			</plugin>
+			
 		</plugins>
 	</build>
+	
 </project>
