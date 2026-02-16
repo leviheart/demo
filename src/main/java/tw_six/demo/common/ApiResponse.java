@@ -1,9 +1,7 @@
 package tw_six.demo.common;
 
-import lombok.Data;
 import java.time.LocalDateTime;
 
-@Data
 public class ApiResponse<T> {
     private boolean success;
     private String message;
@@ -38,4 +36,19 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> error(int code, String message) {
         return new ApiResponse<>(false, message, null, code);
     }
+    
+    public boolean isSuccess() { return success; }
+    public void setSuccess(boolean success) { this.success = success; }
+    
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
+    
+    public T getData() { return data; }
+    public void setData(T data) { this.data = data; }
+    
+    public LocalDateTime getTimestamp() { return timestamp; }
+    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+    
+    public int getCode() { return code; }
+    public void setCode(int code) { this.code = code; }
 }

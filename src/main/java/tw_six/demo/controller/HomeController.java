@@ -25,8 +25,8 @@ public class HomeController { // 主页控制器类定义
      * 
      * @return 欢迎信息字符串
      */
-    @GetMapping("/") // 映射GET请求到根路径
-    public String home() { // 控制器方法：处理主页请求
-        return "Welcome to Spring Boot Demo Application!"; // 返回欢迎信息
+    @GetMapping("/api/welcome")
+    public String home() {
+        return "Welcome to Spring Boot Demo Application!";
     }
 }

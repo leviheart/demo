@@ -1,5 +1,51 @@
+<!--
+================================================================================
+  MapView.vue - 实时地图监控组件
+================================================================================
+
+【功能概述】
+  提供车辆实时位置监控功能，基于Mapbox地图服务展示车辆位置和状态。
+  支持车辆选择、位置追踪、轨迹显示等功能。
+
+【组件结构】
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │ 页面标题栏                                                              │
+  │ ├── 标题: 实时地图监控                                                  │
+  │ └── 操作按钮: 定位车辆、显示/隐藏轨迹                                    │
+  ├─────────────────────────────────────────────────────────────────────────┤
+  │ 主内容区                                                                │
+  │ ├── 地图区域 (18栏)                                                     │
+  │ │   └── Mapbox地图容器                                                  │
+  │ └── 车辆信息面板 (6栏)                                                  │
+  │     └── 车辆列表 (可点击选择)                                           │
+  └─────────────────────────────────────────────────────────────────────────┘
+
+【核心功能】
+  1. 地图初始化: 使用Mapbox GL JS创建交互式地图
+  2. 车辆数据加载: 从后端API获取车辆位置数据
+  3. 标记管理: 在地图上显示车辆位置标记
+  4. 车辆选择: 点击车辆列表或地图标记选择车辆
+  5. 自动刷新: 每5秒自动更新车辆位置数据
+
+【API接口】
+  - GET /api/car-locations/latest: 获取所有车辆最新位置
+
+【技术要点】
+  - Mapbox GL JS: 地图渲染引擎
+  - 自定义标记: 根据速度显示不同颜色
+  - 弹窗信息: 点击标记显示车辆详情
+  - 定时刷新: setInterval实现自动更新
+
+【关联文件】
+  - 后端: CarLocationController.java
+  - 服务: CarLocationService.java
+  - 配置: .env (VITE_MAPBOX_TOKEN)
+================================================================================
+-->
+
 <template>
   <div class="map-view-page">
+    <!-- 页面标题栏 -->
     <div class="page-header">
       <div class="header-content">
         <div class="header-title">
@@ -8,9 +54,11 @@
         </div>
         <div class="header-controls">
           <el-button-group>
+            <!-- 定位所有车辆按钮 -->
             <el-button @click="centerOnVehicles" type="primary" size="small">
               <el-icon><Position /></el-icon>定位车辆
             </el-button>
+            <!-- 切换轨迹显示按钮 -->
             <el-button @click="toggleTrail" size="small">
               <el-icon><component :is="showTrail ? 'Hide' : 'View'"></component></el-icon>
               {{ showTrail ? '隐藏轨迹' : '显示轨迹' }}
@@ -20,6 +68,7 @@
       </div>
     </div>
 
+    <!-- 主内容区域 -->
     <div class="content-wrapper">
       <el-row :gutter="20">
         <!-- 地图区域 -->
@@ -28,11 +77,13 @@
             <template #header>
               <div class="card-header">
                 <span class="card-title">车辆实时位置</span>
+                <!-- 显示在线车辆数量 -->
                 <el-tag :type="vehicles.length > 0 ? 'success' : 'warning'">
                   在线车辆: {{ vehicles.length }}
                 </el-tag>
               </div>
             </template>
+            <!-- Mapbox地图容器 -->
             <div ref="mapContainer" class="map-container"></div>
           </el-card>
         </el-col>
@@ -43,13 +94,16 @@
             <template #header>
               <div class="card-header">
                 <span class="card-title">车辆状态</span>
+                <!-- 刷新按钮 -->
                 <el-button @click="refreshVehicles" size="small" circle>
                   <el-icon><Refresh /></el-icon>
                 </el-button>
               </div>
             </template>
             
+            <!-- 车辆列表 -->
             <div class="vehicle-list" v-loading="loading">
+              <!-- 车辆项 - 可点击选择 -->
               <div 
                 v-for="vehicle in vehicles" 
                 :key="vehicle.id"
@@ -65,6 +119,7 @@
                     <h4 class="vehicle-name">{{ vehicle.carName }}</h4>
                     <span class="vehicle-id">#{{ vehicle.id }}</span>
                   </div>
+                  <!-- 速度标签 - 根据速度显示不同颜色 -->
                   <el-tag 
                     :type="vehicle.speed > 60 ? 'danger' : vehicle.speed > 30 ? 'warning' : 'success'" 
                     size="small"
@@ -73,6 +128,7 @@
                   </el-tag>
                 </div>
                 
+                <!-- 车辆详细信息 -->
                 <div class="vehicle-details">
                   <div class="detail-row">
                     <el-icon class="detail-icon"><Location /></el-icon>
@@ -89,6 +145,7 @@
                 </div>
               </div>
               
+              <!-- 空状态提示 -->
               <div v-if="vehicles.length === 0" class="empty-state">
                 <el-empty description="暂无车辆数据" />
               </div>
@@ -101,6 +158,15 @@
 </template>
 
 <script setup>
+/**
+ * 脚本部分 - 地图监控核心逻辑
+ * 
+ * 导入说明:
+ * - Vue响应式API: ref, onMounted, onUnmounted
+ * - Element Plus组件: ElMessage消息提示
+ * - Mapbox GL: 地图渲染库
+ * - 图标组件: Element Plus图标
+ */
 import { ref, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { 
@@ -109,29 +175,56 @@ import {
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// 注意：在实际项目中，请将此token替换为您的Mapbox访问令牌
+// 配置Mapbox访问令牌（从环境变量读取）
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
+// ==================== 响应式状态 ====================
+
+/** @type {Ref<Array>} 车辆列表数据 */
 const vehicles = ref([]);
+
+/** @type {Ref<boolean>} 加载状态 */
 const loading = ref(false);
+
+/** @type {Ref<Object|null>} 当前选中的车辆 */
 const selectedVehicle = ref(null);
+
+/** @type {Ref<boolean>} 是否显示轨迹 */
 const showTrail = ref(false);
+
+/** @type {Ref<HTMLElement|null>} 地图容器DOM引用 */
 const mapContainer = ref(null);
 
+// ==================== 非响应式变量 ====================
+
+/** @type {mapboxgl.Map|null} Mapbox地图实例 */
 let map = null;
+
+/** @type {Object} 车辆标记对象，key为车辆ID */
 let markers = {};
+
+/** @type {Object} 轨迹线对象 */
 let polylines = {};
 
-// 初始化Mapbox地图
+/** @type {number|null} 自动更新定时器ID */
+let updateInterval = null;
+
+// ==================== 核心方法 ====================
+
+/**
+ * 初始化Mapbox地图
+ * 创建地图实例并添加控件
+ */
 const initMap = () => {
   if (mapContainer.value) {
     map = new mapboxgl.Map({
       container: mapContainer.value,
       style: 'mapbox://styles/mapbox/streets-v11',
-      center: [118.7634, 32.0617],
+      center: [118.7634, 32.0617], // 默认中心点：南京
       zoom: 13
     });
 
-    // 添加导航控件
+    // 添加导航控件（缩放、旋转）
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
     
     // 添加比例尺
@@ -142,7 +235,10 @@ const initMap = () => {
   }
 };
 
-// 加载车辆数据
+/**
+ * 加载车辆数据
+ * 从后端API获取所有车辆最新位置
+ */
 const loadVehicles = async () => {
   loading.value = true;
   try {
@@ -157,7 +253,10 @@ const loadVehicles = async () => {
   }
 };
 
-// 更新地图标记
+/**
+ * 更新地图标记
+ * 清除旧标记并创建新标记
+ */
 const updateMapMarkers = () => {
   // 清除旧标记
   Object.values(markers).forEach(marker => marker.remove());
@@ -176,6 +275,7 @@ const updateMapMarkers = () => {
         </div>
       `;
       
+      // 创建Mapbox标记
       const marker = new mapboxgl.Marker({
         element: el,
         anchor: 'center'
@@ -183,7 +283,7 @@ const updateMapMarkers = () => {
       .setLngLat([vehicle.longitude, vehicle.latitude])
       .addTo(map);
       
-      // 添加弹窗
+      // 创建弹窗
       const popup = new mapboxgl.Popup({
         offset: 25,
         closeButton: false
@@ -198,6 +298,7 @@ const updateMapMarkers = () => {
       
       marker.setPopup(popup);
       
+      // 点击标记选择车辆
       marker.getElement().addEventListener('click', () => {
         selectVehicle(vehicle);
       });
@@ -207,14 +308,22 @@ const updateMapMarkers = () => {
   });
 };
 
-// 获取速度对应颜色
+/**
+ * 根据速度获取标记颜色
+ * @param {number} speed - 车辆速度
+ * @returns {string} 颜色值
+ */
 const getSpeedColor = (speed) => {
-  if (speed > 60) return '#ff4757';
-  if (speed > 30) return '#ffa502';
-  return '#2ed573';
+  if (speed > 60) return '#ff4757'; // 高速 - 红色
+  if (speed > 30) return '#ffa502'; // 中速 - 橙色
+  return '#2ed573'; // 低速 - 绿色
 };
 
-// 选择车辆
+/**
+ * 选择车辆
+ * 高亮显示并居中到选中车辆
+ * @param {Object} vehicle - 车辆对象
+ */
 const selectVehicle = (vehicle) => {
   selectedVehicle.value = vehicle;
   
@@ -226,7 +335,7 @@ const selectVehicle = (vehicle) => {
       essential: true
     });
     
-    // 高亮标记
+    // 高亮选中标记，其他标记变淡
     Object.values(markers).forEach(marker => {
       marker.getElement().style.opacity = '0.5';
     });
@@ -236,7 +345,10 @@ const selectVehicle = (vehicle) => {
   }
 };
 
-// 居中到所有车辆
+/**
+ * 居中显示所有车辆
+ * 调整地图视野以包含所有车辆位置
+ */
 const centerOnVehicles = () => {
   if (vehicles.value.length > 0 && map) {
     const coordinates = vehicles.value.map(v => [v.longitude, v.latitude]);
@@ -253,37 +365,53 @@ const centerOnVehicles = () => {
   }
 };
 
-// 切换轨迹显示
+/**
+ * 切换轨迹显示
+ */
 const toggleTrail = () => {
   showTrail.value = !showTrail.value;
   ElMessage.info(showTrail.value ? '已显示车辆轨迹' : '已隐藏车辆轨迹');
 };
 
-// 刷新车辆数据
+/**
+ * 刷新车辆数据
+ */
 const refreshVehicles = () => {
   loadVehicles();
   ElMessage.success('数据已刷新');
 };
 
-// 格式化时间
+/**
+ * 格式化时间显示
+ * @param {string} timeString - ISO时间字符串
+ * @returns {string} 格式化后的时间
+ */
 const formatTime = (timeString) => {
   if (!timeString) return '-';
   return new Date(timeString).toLocaleString('zh-CN');
 };
 
-// 定期更新数据
-let updateInterval = null;
+// ==================== 生命周期钩子 ====================
 
+/**
+ * 组件挂载时初始化
+ */
 onMounted(() => {
   initMap();
   loadVehicles();
-  updateInterval = setInterval(loadVehicles, 5000); // 每5秒更新一次
+  // 设置定时刷新（每5秒）
+  updateInterval = setInterval(loadVehicles, 5000);
 });
 
+/**
+ * 组件卸载时清理
+ */
 onUnmounted(() => {
+  // 清除定时器
   if (updateInterval) {
     clearInterval(updateInterval);
   }
+  // 销毁地图实例
   if (map) {
     map.remove();
   }
@@ -291,12 +419,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 页面容器样式 */
 .map-view-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 24px;
 }
 
+/* 页面标题栏样式 */
 .page-header {
   margin-bottom: 24px;
 }
@@ -339,6 +469,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+/* 内容区域样式 */
 .content-wrapper {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
@@ -372,6 +503,7 @@ onUnmounted(() => {
   color: #303133;
 }
 
+/* 地图容器样式 */
 .map-container {
   height: 600px;
   border-radius: 8px;
@@ -379,6 +511,7 @@ onUnmounted(() => {
   background: #f8f9fa;
 }
 
+/* 车辆列表样式 */
 .vehicle-list {
   max-height: 600px;
   overflow-y: auto;
@@ -498,6 +631,7 @@ onUnmounted(() => {
   100% { transform: scale(1); }
 }
 
+/* 弹窗样式 */
 .vehicle-popup h4 {
   margin: 0 0 12px 0;
   color: #303133;
@@ -509,6 +643,7 @@ onUnmounted(() => {
   color: #606266;
 }
 
+/* 响应式布局 */
 @media (max-width: 1200px) {
   .content-wrapper {
     padding: 16px;

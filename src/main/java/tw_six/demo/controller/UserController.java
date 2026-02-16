@@ -1,77 +1,115 @@
-package tw_six.demo.controller; // 定义用户控制器所在的包，属于控制层
+package tw_six.demo.controller;
 
-import lombok.RequiredArgsConstructor; // Lombok注解，生成必要的构造函数
-import org.springframework.web.bind.annotation.*; // Spring MVC注解集合
-import tw_six.demo.entity.User; // 引入用户实体类
-import tw_six.demo.service.UserService; // 引入用户业务服务类
-import java.util.List; // Java集合框架，用于返回列表数据
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import tw_six.demo.entity.User;
+import tw_six.demo.service.UserService;
+import java.util.List;
 
 /**
- * 用户控制器 - REST API控制层组件
+ * 用户控制器 - RESTful API接口层
  * 
- * 文件关联说明：
- * 1. 与UserService关联：通过构造函数注入获得用户业务服务能力
- * 2. 与User实体类关联：接收和返回User对象作为数据载体
- * 3. 与Spring MVC框架关联：通过@RestController注解集成到Web框架
- * 4. 与HTTP协议关联：处理各种HTTP请求方法（GET、POST、DELETE等）
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 【功能概述】
+ * 提供系统用户的CRUD操作接口，用于用户管理和权限控制。
+ * 支持用户查询、创建、删除等基本操作。
  * 
- * 作用说明：
- * - 提供用户管理的RESTful API接口
- * - 处理HTTP请求并返回JSON格式响应
- * - 作为前后端分离架构的服务端接口层
- * - 协调业务逻辑层和HTTP协议之间的数据转换
+ * 【API端点列表】
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 方法   │ 路径              │ 功能描述                             │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ GET    │ /api/users        │ 获取所有用户列表                     │
+ * │ GET    │ /api/users/{id}   │ 根据ID获取单个用户信息               │
+ * │ POST   │ /api/users        │ 创建新用户                           │
+ * │ DELETE │ /api/users/{id}   │ 删除指定用户                         │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * 【业务场景】
+ * 1. 用户注册：新用户创建账号
+ * 2. 用户管理：管理员查看和删除用户
+ * 3. 权限控制：根据用户角色分配系统权限
+ * 
+ * 【关联文件】
+ * - 实体类: tw_six.demo.entity.User
+ * - 服务层: tw_six.demo.service.UserService
+ * - 仓库层: tw_six.demo.repository.UserRepository
+ * 
+ * 【数据模型】
+ * User实体包含: id, username, password, email, role, createTime等字段
+ * 
+ * 【安全提示】
+ * - 实际生产环境应添加密码加密（如BCrypt）
+ * - 应添加身份验证和授权拦截器
+ * - 敏感字段（如密码）不应直接返回给前端
+ * ═══════════════════════════════════════════════════════════════════════════
  */
-@RestController // 标记为REST控制器，自动将返回值序列化为JSON
-@RequestMapping("/api/users") // 设置统一的URL前缀，所有方法路径都相对于/api/users
-@RequiredArgsConstructor // Lombok注解，为final字段生成构造函数，支持构造函数注入
-public class UserController { // 用户控制器类定义
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
     
-    // 使用final修饰确保依赖不可变性，通过构造函数注入
-    private final UserService userService; // 用户业务服务依赖
+    private final UserService userService;
+    
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
     
     /**
      * 获取所有用户列表
-     * 对应HTTP GET /api/users 请求
      * 
-     * @return 用户列表JSON数据
+     * 功能说明:
+     * - 查询系统中所有注册用户
+     * - 用于管理后台的用户列表展示
+     * 
+     * @return 用户列表，包含用户基本信息
      */
-    @GetMapping // 映射GET请求到/api/users路径
-    public List<User> getAllUsers() { // 控制器方法：获取所有用户
-        return userService.getAllUsers(); // 调用业务层方法获取用户列表
+    @GetMapping
+    public List<User> getAllUsers() {
+        return userService.getAllUsers();
     }
     
     /**
      * 根据ID获取单个用户
-     * 对应HTTP GET /api/users/{id} 请求
      * 
-     * @param id 用户ID，从URL路径变量中提取
-     * @return 用户对象JSON数据
+     * 功能说明:
+     * - 查询指定ID的用户详细信息
+     * - 用于用户详情查看或编辑前获取数据
+     * 
+     * @param id 用户ID（URL路径参数）
+     * @return 用户对象，如果不存在则返回null
      */
-    @GetMapping("/{id}") // 映射GET请求到/api/users/{id}路径，{id}为路径变量
-    public User getUserById(@PathVariable Long id) { // 控制器方法：根据ID获取用户
-        return userService.getUserById(id); // 调用业务层方法查找用户
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable Long id) {
+        return userService.getUserById(id);
     }
     
     /**
      * 创建新用户
-     * 对应HTTP POST /api/users 请求
      * 
-     * @param user 从请求体中解析的用户对象
-     * @return 保存后的用户对象JSON数据
+     * 功能说明:
+     * - 接收前端提交的用户信息
+     * - 创建新用户记录并保存到数据库
+     * - 创建时间由系统自动设置
+     * 
+     * @param user 用户对象（JSON格式请求体）
+     * @return 创建成功的用户对象，包含生成的ID
      */
-    @PostMapping // 映射POST请求到/api/users路径
-    public User createUser(@RequestBody User user) { // 控制器方法：创建用户
-        return userService.saveUser(user); // 调用业务层方法保存用户
+    @PostMapping
+    public User createUser(@RequestBody User user) {
+        return userService.saveUser(user);
     }
     
     /**
      * 删除用户
-     * 对应HTTP DELETE /api/users/{id} 请求
      * 
-     * @param id 用户ID，从URL路径变量中提取
+     * 功能说明:
+     * - 根据ID删除指定用户
+     * - 物理删除，数据将从数据库中永久移除
+     * 
+     * @param id 要删除的用户ID（URL路径参数）
      */
-    @DeleteMapping("/{id}") // 映射DELETE请求到/api/users/{id}路径
-    public void deleteUser(@PathVariable Long id) { // 控制器方法：删除用户
-        userService.deleteUser(id); // 调用业务层方法删除用户
+    @DeleteMapping("/{id}")
+    public void deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
     }
 }

@@ -1,82 +1,118 @@
-package tw_six.demo.controller; // 定义地图控制器所在的包，属于控制层
+package tw_six.demo.controller;
 
-import lombok.RequiredArgsConstructor; // Lombok注解，生成必要的构造函数
-import org.springframework.web.bind.annotation.*; // Spring MVC注解集合
-import tw_six.demo.entity.CarLocation; // 引入汽车位置实体类
-import tw_six.demo.entity.Route; // 引入路线实体类
-import tw_six.demo.service.CarLocationService; // 引入汽车位置业务服务类
-import tw_six.demo.service.RouteService; // 引入路线规划业务服务类
-import java.util.List; // Java集合框架，用于返回列表数据
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import tw_six.demo.entity.CarLocation;
+import tw_six.demo.entity.Route;
+import tw_six.demo.service.CarLocationService;
+import tw_six.demo.service.RouteService;
+import java.util.List;
 
 /**
- * 地图控制器 - 汽车地图导航系统REST API控制层组件
+ * 地图控制器 - 地图相关功能的RESTful API接口层
  * 
- * 文件关联说明：
- * 1. 与CarLocationService关联：通过构造函数注入获得车辆位置业务服务能力
- * 2. 与RouteService关联：通过构造函数注入获得路线规划业务服务能力
- * 3. 与CarLocation/Route实体类关联：接收和返回位置及路线对象
- * 4. 与Spring MVC框架关联：通过@RestController注解集成到Web框架
- * 5. 与前端页面关联：提供API接口供JavaScript调用
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 【功能概述】
+ * 提供地图相关的综合功能接口，包括车辆位置查询、活跃车辆获取、路线规划等。
+ * 是前端地图组件的主要数据来源。
  * 
- * 作用说明：
- * - 提供汽车地图导航系统的RESTful API接口
- * - 处理车辆位置更新、路线规划等核心功能请求
- * - 作为前后端分离架构的服务端接口层
- * - 协调业务逻辑层和HTTP协议之间的数据转换
+ * 【API端点列表】
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ 方法 │ 路径                    │ 功能描述                           │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ GET  │ /api/map/locations      │ 获取所有车辆位置                   │
+ * │ POST │ /api/map/location       │ 更新/保存车辆位置                 │
+ * │ GET  │ /api/map/active-cars    │ 获取活跃车辆列表                   │
+ * │ GET  │ /api/map/route          │ 规划行车路线                       │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ * 
+ * 【业务场景】
+ * 1. 实时监控面板：获取所有车辆位置并在地图上展示
+ * 2. 位置上报：GPS设备定期更新车辆位置
+ * 3. 活跃状态判断：识别最近有位置更新的车辆
+ * 4. 路线规划：计算两点之间的最优行车路线
+ * 
+ * 【关联文件】
+ * - 实体类: CarLocation, Route
+ * - 服务层: CarLocationService, RouteService
+ * - 前端调用: MapView.vue组件
+ * 
+ * 【请求示例】
+ * GET /api/map/route?start=116.4074,39.9042&end=121.4737,31.2304
+ * 响应: {"id":1,"startPoint":"...","endPoint":"...","distance":1200,"duration":7200}
+ * ═══════════════════════════════════════════════════════════════════════════
  */
-@RestController // 标记为REST控制器，自动将返回值序列化为JSON
-@RequestMapping("/api/map") // 设置统一的URL前缀，所有方法路径都相对于/api/map
-@RequiredArgsConstructor // Lombok注解，为final字段生成构造函数，支持构造函数注入
-public class MapController { // 地图控制器类定义
+@RestController
+@RequestMapping("/api/map")
+public class MapController {
     
-    // 使用final修饰确保依赖不可变性，通过构造函数注入
-    private final CarLocationService carLocationService; // 车辆位置业务服务依赖
-    private final RouteService routeService; // 路线规划业务服务依赖
+    private final CarLocationService carLocationService;
+    private final RouteService routeService;
     
-    /**
-     * 获取所有车辆位置信息
-     * 对应HTTP GET /api/map/locations 请求
-     * 
-     * @return 车辆位置列表JSON数据
-     */
-    @GetMapping("/locations") // 映射GET请求到/api/map/locations路径
-    public List<CarLocation> getAllLocations() { // 控制器方法：获取所有车辆位置
-        return carLocationService.getAllLocations(); // 调用业务层方法获取位置列表
+    @Autowired
+    public MapController(CarLocationService carLocationService, RouteService routeService) {
+        this.carLocationService = carLocationService;
+        this.routeService = routeService;
     }
     
     /**
-     * 更新车辆位置信息
-     * 对应HTTP POST /api/map/location 请求
+     * 获取所有车辆位置
      * 
-     * @param location 从请求体中解析的车辆位置对象
-     * @return 保存后的车辆位置对象JSON数据
+     * 功能说明:
+     * - 查询数据库中所有车辆的位置信息
+     * - 用于地图初始化时加载所有车辆标记
+     * 
+     * @return 所有车辆位置列表
      */
-    @PostMapping("/location") // 映射POST请求到/api/map/location路径
-    public CarLocation updateLocation(@RequestBody CarLocation location) { // 控制器方法：更新车辆位置
-        return carLocationService.saveLocation(location); // 调用业务层方法保存位置
+    @GetMapping("/locations")
+    public List<CarLocation> getAllLocations() {
+        return carLocationService.getAllLocations();
     }
     
     /**
-     * 获取运行中的车辆列表
-     * 对应HTTP GET /api/map/active-cars 请求
+     * 更新/保存车辆位置
      * 
-     * @return 运行中车辆列表JSON数据
+     * 功能说明:
+     * - 接收车辆上报的新位置数据
+     * - 如果是新车则创建记录，已有车辆则更新位置
+     * 
+     * @param location 位置信息对象
+     * @return 保存后的位置对象
      */
-    @GetMapping("/active-cars") // 映射GET请求到/api/map/active-cars路径
-    public List<CarLocation> getActiveCars() { // 控制器方法：获取运行中车辆
-        return carLocationService.getActiveLocations(); // 调用业务层方法获取活跃车辆
+    @PostMapping("/location")
+    public CarLocation updateLocation(@RequestBody CarLocation location) {
+        return carLocationService.saveLocation(location);
     }
     
     /**
-     * 规划路线
-     * 对应HTTP GET /api/map/route 请求（修改为GET方法解决405错误）
+     * 获取活跃车辆列表
      * 
-     * @param start 起点参数，从请求参数中提取
-     * @param end 终点参数，从请求参数中提取
-     * @return 路线规划结果JSON数据
+     * 功能说明:
+     * - 查询最近有位置更新的车辆
+     * - 活跃判断标准由服务层定义（如最近5分钟内有更新）
+     * - 用于区分在线/离线车辆状态
+     * 
+     * @return 活跃车辆位置列表
      */
-    @GetMapping("/route") // 修改为GET请求以解决405 Method Not Allowed错误
-    public Route planRoute(@RequestParam String start, @RequestParam String end) { // 控制器方法：路线规划
-        return routeService.planRoute(start, end); // 调用业务层方法进行路线规划
+    @GetMapping("/active-cars")
+    public List<CarLocation> getActiveCars() {
+        return carLocationService.getActiveLocations();
+    }
+    
+    /**
+     * 规划行车路线
+     * 
+     * 功能说明:
+     * - 根据起点和终点坐标规划最优路线
+     * - 返回路线距离、预计时间等信息
+     * - 可能调用第三方地图API（如高德、百度地图）
+     * 
+     * @param start 起点坐标，格式："经度,纬度"
+     * @param end   终点坐标，格式："经度,纬度"
+     * @return 路线规划结果，包含距离、时长、途经点等
+     */
+    @GetMapping("/route")
+    public Route planRoute(@RequestParam String start, @RequestParam String end) {
+        return routeService.planRoute(start, end);
     }
 }

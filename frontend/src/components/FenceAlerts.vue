@@ -1,247 +1,378 @@
 <template>
   <div class="fence-alerts-page">
     <div class="page-header">
-      <h1>报警记录管理</h1>
-      <div class="header-actions">
-        <div class="input-group me-2">
-          <input type="date" class="form-control" v-model="startDate">
-          <input type="date" class="form-control" v-model="endDate">
-          <button class="btn btn-outline-secondary" @click="filterAlarms">
-            <i class="bi bi-search"></i> 查询
-          </button>
+      <div class="header-content">
+        <div class="header-title">
+          <el-icon class="title-icon"><Bell /></el-icon>
+          <h1>报警记录管理</h1>
         </div>
-        <button class="btn btn-success" @click="loadAlarms">
-          <i class="bi bi-arrow-clockwise"></i> 刷新
-        </button>
+        <div class="header-actions">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            style="margin-right: 12px;"
+          />
+          <el-button type="primary" @click="filterAlarms">
+            <el-icon><Search /></el-icon>查询
+          </el-button>
+          <el-button type="success" @click="loadAlarms">
+            <el-icon><Refresh /></el-icon>刷新
+          </el-button>
+        </div>
       </div>
     </div>
 
-    <div class="content-area">
-      <div class="alerts-table">
-        <table class="table table-striped">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>时间</th>
-              <th>车牌号</th>
-              <th>报警类型</th>
-              <th>严重程度</th>
-              <th>位置</th>
-              <th>状态</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="alert in alerts" :key="alert.id" :class="getSeverityClass(alert.severity)">
-              <td>{{ alert.id }}</td>
-              <td>{{ alert.createdTime ? new Date(alert.createdTime).toLocaleString() : '-' }}</td>
-              <td>{{ alert.carName || '-' }}</td>
-              <td>{{ alert.alertType || '-' }}</td>
-              <td>
-                <span class="badge" :class="`bg-${getSeverityColor(alert.severity)}`">
-                  {{ alert.severity || '-' }}
-                </span>
-              </td>
-              <td>{{ alert.latitude && alert.longitude ? `${alert.latitude.toFixed(6)},${alert.longitude.toFixed(6)}` : '未知位置' }}</td>
-              <td>
-                <span class="badge" :class="alert.isHandled ? 'bg-success' : 'bg-warning'">
-                  {{ alert.isHandled ? '已处理' : '待处理' }}
-                </span>
-              </td>
-              <td>
-                <button v-if="!alert.isHandled" class="btn btn-sm btn-outline-success" @click="resolveAlert(alert.id)">
-                  <i class="bi bi-check"></i> 处理
-                </button>
-                <span v-else>-</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="content-wrapper">
+      <el-card class="data-card" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span class="card-title">报警列表</span>
+            <el-badge :value="alerts.length" type="danger">
+              <el-tag type="info">总记录数</el-tag>
+            </el-badge>
+          </div>
+        </template>
+
+        <el-table 
+          :data="alerts" 
+          stripe 
+          style="width: 100%" 
+          v-loading="loading"
+          row-class-name="table-row"
+        >
+          <el-table-column prop="id" label="ID" width="80" align="center" />
+          <el-table-column prop="createdTime" label="时间" width="180" align="center">
+            <template #default="scope">
+              <span class="time-text">{{ scope.row.createdTime ? new Date(scope.row.createdTime).toLocaleString() : '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="carName" label="车牌号" width="120">
+            <template #default="scope">
+              <span class="car-name">{{ scope.row.carName || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="alertType" label="报警类型" width="100" align="center">
+            <template #default="scope">
+              <el-tag :type="getAlertTypeColor(scope.row.alertType)" size="small">
+                {{ getAlertTypeText(scope.row.alertType) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="severity" label="严重程度" width="100" align="center">
+            <template #default="scope">
+              <el-tag :type="getSeverityColor(scope.row.severity)" size="small">
+                {{ scope.row.severity || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="latitude" label="位置" min-width="180">
+            <template #default="scope">
+              <span class="location-text">
+                {{ scope.row.latitude && scope.row.longitude ? 
+                  `${scope.row.latitude.toFixed(6)}, ${scope.row.longitude.toFixed(6)}` : '未知位置' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="isHandled" label="状态" width="100" align="center">
+            <template #default="scope">
+              <el-tag :type="scope.row.isHandled ? 'success' : 'warning'" size="small">
+                {{ scope.row.isHandled ? '已处理' : '待处理' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" align="center" fixed="right">
+            <template #default="scope">
+              <el-button 
+                v-if="!scope.row.isHandled"
+                size="small" 
+                type="success" 
+                @click="resolveAlert(scope.row.id)"
+                class="action-btn"
+              >
+                <el-icon><Check /></el-icon>处理
+              </el-button>
+              <span v-else class="handled-text">-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
     </div>
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Bell, Search, Refresh, Check } from '@element-plus/icons-vue';
 
-export default {
-  name: 'FenceAlerts',
-  setup() {
-    const alerts = ref([]);
-    const startDate = ref('');
-    const endDate = ref('');
+const alerts = ref([]);
+const loading = ref(false);
+const dateRange = ref([]);
 
-    // 加载报警数据
-    const loadAlarms = async () => {
-      try {
-        const response = await fetch('http://localhost:8081/api/fence-alerts');
-        alerts.value = await response.json();
-      } catch (error) {
-        console.error('加载报警记录失败:', error);
-        alert('加载数据失败，请检查后端服务是否正常运行');
-      }
-    };
-
-    // 获取严重程度样式类
-    const getSeverityClass = (severity) => {
-      if (!severity) return '';
-      switch(severity.toLowerCase()) {
-        case 'high': return 'alert-high';
-        case 'medium': return 'alert-medium';
-        case 'low': return 'alert-low';
-        default: return '';
-      }
-    };
-
-    // 获取严重程度颜色
-    const getSeverityColor = (severity) => {
-      if (!severity) return 'secondary';
-      switch(severity.toLowerCase()) {
-        case 'high': return 'danger';
-        case 'medium': return 'warning';
-        case 'low': return 'info';
-        default: return 'secondary';
-      }
-    };
-
-    // 处理报警
-    const resolveAlert = async (id) => {
-      if (confirm('确定要标记此报警为已处理吗？')) {
-        try {
-          const response = await fetch(`http://localhost:8081/api/fence-alerts/${id}/resolve`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              handler: 'system',
-              handleTime: new Date().toISOString()
-            })
-          });
-
-          if (response.ok) {
-            const updatedAlert = await response.json();
-            const index = alerts.value.findIndex(a => a.id === updatedAlert.id);
-            if (index !== -1) {
-              alerts.value[index] = updatedAlert;
-            }
-            alert('处理成功！');
-          } else {
-            alert('处理失败：' + await response.text());
-          }
-        } catch (error) {
-          console.error('处理报警失败:', error);
-          alert('处理失败，请检查网络连接');
-        }
-      }
-    };
-
-    // 筛选报警
-    const filterAlarms = async () => {
-      let url = 'http://localhost:8081/api/fence-alerts';
-      if (startDate.value || endDate.value) {
-        const params = new URLSearchParams();
-        if (startDate.value) params.append('startTime', startDate.value);
-        if (endDate.value) params.append('endTime', endDate.value);
-        url += `/range?${params.toString()}`;
-      }
-
-      try {
-        const response = await fetch(url);
-        alerts.value = await response.json();
-      } catch (error) {
-        console.error('筛选报警失败:', error);
-        alert('查询失败，请检查网络连接');
-      }
-    };
-
-    onMounted(() => {
-      loadAlarms();
-    });
-
-    return {
-      alerts,
-      startDate,
-      endDate,
-      getSeverityClass,
-      getSeverityColor,
-      resolveAlert,
-      filterAlarms
-    };
+const loadAlarms = async () => {
+  loading.value = true;
+  try {
+    const response = await fetch('http://localhost:8081/api/fence-alerts');
+    const result = await response.json();
+    alerts.value = result.data || [];
+  } catch (error) {
+    ElMessage.error('加载数据失败，请检查网络连接');
+  } finally {
+    loading.value = false;
   }
 };
+
+const filterAlarms = async () => {
+  if (!dateRange.value || dateRange.value.length !== 2) {
+    loadAlarms();
+    return;
+  }
+  
+  loading.value = true;
+  try {
+    const [start, end] = dateRange.value;
+    const response = await fetch(`http://localhost:8081/api/fence-alerts/range?startTime=${start}T00:00:00&endTime=${end}T23:59:59`);
+    const result = await response.json();
+    alerts.value = result.data || [];
+  } catch (error) {
+    ElMessage.error('查询失败，请检查网络连接');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const resolveAlert = async (id) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要标记此报警为已处理吗？',
+      '处理确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
+      }
+    );
+    
+    const response = await fetch(`http://localhost:8081/api/fence-alerts/${id}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        handler: 'system',
+        handleTime: new Date().toISOString()
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      const index = alerts.value.findIndex(a => a.id === result.data.id);
+      if (index !== -1) {
+        alerts.value[index] = result.data;
+      }
+      ElMessage.success('处理成功');
+    } else {
+      ElMessage.error('处理失败');
+    }
+  } catch {
+    // 用户取消
+  }
+};
+
+const getAlertTypeText = (type) => {
+  const typeMap = {
+    'entry': '进入',
+    'exit': '离开',
+    'both': '进出'
+  };
+  return typeMap[type] || type || '-';
+};
+
+const getAlertTypeColor = (type) => {
+  const colorMap = {
+    'entry': 'primary',
+    'exit': 'danger',
+    'both': 'warning'
+  };
+  return colorMap[type] || 'info';
+};
+
+const getSeverityColor = (severity) => {
+  if (!severity) return 'info';
+  const colorMap = {
+    'high': 'danger',
+    'medium': 'warning',
+    'low': 'info'
+  };
+  return colorMap[severity.toLowerCase()] || 'info';
+};
+
+onMounted(() => {
+  loadAlarms();
+});
 </script>
 
 <style scoped>
 .fence-alerts-page {
-  padding: 20px;
-  background-color: #f8f9fa;
   min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px;
 }
 
 .page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #dee2e6;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 20px 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title-icon {
+  font-size: 28px;
+  color: #409eff;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #303133;
+  background: linear-gradient(90deg, #409eff, #64b5f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.input-group {
+.content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.data-card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+:deep(.el-card__header) {
+  background: linear-gradient(90deg, #f5f7fa, #e4e7ed);
+  border-bottom: 1px solid #ebeef5;
+  padding: 20px 24px;
+}
+
+.card-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
 }
 
-.input-group .form-control {
-  margin-right: 5px;
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
 }
 
-.alert-high { background-color: #fff3f3; }
-.alert-medium { background-color: #fff8f0; }
-.alert-low { background-color: #f8fff8; }
-
-.table {
-  background: white;
+:deep(.el-table) {
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.badge {
-  font-size: 0.75em;
+:deep(.el-table__header) {
+  background: #f5f7fa;
 }
 
-.btn {
-  border-radius: 4px;
+:deep(.el-table__header th) {
+  background: #f5f7fa !important;
+  color: #606266;
+  font-weight: 500;
+  padding: 16px 12px;
 }
 
-.form-control {
-  border: 1px solid #ced4da;
-  border-radius: 4px;
+:deep(.el-table__body td) {
+  padding: 14px 12px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.btn-success {
-  background-color: #198754;
-  border-color: #198754;
+.table-row:hover {
+  background: #f5f7fa !important;
 }
 
-.btn-success:hover {
-  background-color: #157347;
-  border-color: #146c43;
+.time-text,
+.location-text {
+  color: #606266;
+  font-size: 13px;
 }
 
-.btn-outline-secondary {
-  border-color: #6c757d;
-  color: #6c757d;
+.car-name {
+  font-weight: 500;
+  color: #303133;
 }
 
-.btn-outline-secondary:hover {
-  background-color: #6c757d;
-  color: white;
+.action-btn {
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.handled-text {
+  color: #909399;
+}
+
+@media (max-width: 992px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .fence-alerts-page {
+    padding: 16px;
+  }
+  
+  .header-content {
+    padding: 16px;
+  }
+  
+  .content-wrapper {
+    padding: 16px;
+  }
+  
+  :deep(.el-table) {
+    font-size: 12px;
+  }
 }
 </style>

@@ -175,7 +175,8 @@ const loadGroups = async () => {
   loading.value = true;
   try {
     const response = await fetch('http://localhost:8081/api/vehicle-groups');
-    groups.value = await response.json();
+    const result = await response.json();
+    groups.value = result.data || [];
   } catch (error) {
     ElMessage.error('加载数据失败，请检查网络连接');
   } finally {
@@ -197,8 +198,8 @@ const saveGroup = async () => {
         });
 
         if (response.ok) {
-          const savedGroup = await response.json();
-          groups.value.push(savedGroup);
+          const result = await response.json();
+          groups.value.push(result.data);
           showAddDialog.value = false;
           resetForm();
           ElMessage.success('分组创建成功');

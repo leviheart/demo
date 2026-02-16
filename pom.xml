@@ -78,10 +78,13 @@
 		<!-- Lombok依赖 - 代码简化工具 -->
 		<!-- 自动生成getter/setter/toString等标准方法 -->
 		<!-- 减少样板代码，提高开发效率 -->
+		<!-- 注意：已手动实现getter/setter，此依赖仅用于兼容性 -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
+			<version>1.18.36</version>
 			<optional>true</optional>
+			<scope>provided</scope>
 		</dependency>
 		
 		<!-- Spring Boot测试启动器 - 测试支持 -->
@@ -119,6 +122,13 @@
 					</excludes>
 				</configuration>
 				
+			</plugin>
+			
+			<!-- Maven编译器插件 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
 			</plugin>
 			
 		</plugins>

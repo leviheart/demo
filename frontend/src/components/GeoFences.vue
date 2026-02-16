@@ -223,6 +223,9 @@ import {
   VideoPause, VideoPlay 
 } from '@element-plus/icons-vue';
 import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 const fences = ref([]);
 const loading = ref(false);
@@ -290,7 +293,8 @@ const loadFences = async () => {
   loading.value = true;
   try {
     const response = await fetch('http://localhost:8081/api/geo-fences');
-    fences.value = await response.json();
+    const result = await response.json();
+    fences.value = result.data || [];
     renderFencesOnMap();
   } catch (error) {
     ElMessage.error('加载围栏失败，请检查网络连接');
@@ -355,8 +359,8 @@ const saveFence = async () => {
         });
 
         if (response.ok) {
-          const savedFence = await response.json();
-          fences.value.push(savedFence);
+          const result = await response.json();
+          fences.value.push(result.data);
           showAddDialog.value = false;
           resetForm();
           renderFencesOnMap();
@@ -412,10 +416,10 @@ const toggleFenceStatus = async (id, currentStatus) => {
     });
 
     if (response.ok) {
-      const updatedFence = await response.json();
-      const index = fences.value.findIndex(f => f.id === updatedFence.id);
+      const result = await response.json();
+      const index = fences.value.findIndex(f => f.id === result.data.id);
       if (index !== -1) {
-        fences.value[index] = updatedFence;
+        fences.value[index] = result.data;
       }
       renderFencesOnMap();
       ElMessage.success('状态更新成功');
