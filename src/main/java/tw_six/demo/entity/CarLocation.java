@@ -1,6 +1,7 @@
 package tw_six.demo.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 /**
  * 车辆位置实体类 - 用于存储和管理车辆的实时位置信息
@@ -29,6 +30,7 @@ import jakarta.persistence.*;
  * location.setCarName("苏A12345");
  * location.setLatitude(32.0617);
  * location.setLongitude(118.7634);
+ * location.setSpeed(60.5);
  * location.setStatus("active");
  */
 @Entity
@@ -70,6 +72,24 @@ public class CarLocation {
     private Double longitude;
     
     /**
+     * 行驶速度 - 车辆当前速度（单位：公里/小时）
+     * 用于速度监控和超速告警
+     */
+    @Column(name = "speed")
+    private Double speed;
+    
+    /**
+     * 行驶方向 - 车辆的行驶方向（单位：度）
+     * 范围：0-360度
+     * - 0度：正北
+     * - 90度：正东
+     * - 180度：正南
+     * - 270度：正西
+     */
+    @Column(name = "direction")
+    private Double direction;
+    
+    /**
      * 车辆状态 - 表示当前车辆的运行状态
      * 可选值：
      * - "active"：运行中，车辆正在行驶
@@ -78,6 +98,13 @@ public class CarLocation {
      */
     @Column(name = "status")
     private String status;
+    
+    /**
+     * 更新时间 - 位置信息的最后更新时间
+     * 用于判断数据新鲜度和活跃状态
+     */
+    @Column(name = "update_time")
+    private LocalDateTime updateTime;
     
     /**
      * 所属分组 - 车辆所属的分组信息
@@ -108,8 +135,17 @@ public class CarLocation {
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
     
+    public Double getSpeed() { return speed; }
+    public void setSpeed(Double speed) { this.speed = speed; }
+    
+    public Double getDirection() { return direction; }
+    public void setDirection(Double direction) { this.direction = direction; }
+    
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    
+    public LocalDateTime getUpdateTime() { return updateTime; }
+    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
     
     public VehicleGroup getVehicleGroup() { return vehicleGroup; }
     public void setVehicleGroup(VehicleGroup vehicleGroup) { this.vehicleGroup = vehicleGroup; }

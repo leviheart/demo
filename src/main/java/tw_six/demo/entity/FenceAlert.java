@@ -87,6 +87,13 @@ public class FenceAlert {
     private String alertType;
     
     /**
+     * 告警时间 - 告警触发的时间
+     * 与created_time相同，用于兼容数据库字段
+     */
+    @Column(name = "alert_time")
+    private LocalDateTime alertTime;
+    
+    /**
      * 处理状态 - 标识告警是否已被处理
      * - false：待处理，需要管理员关注
      * - true：已处理，管理员已确认
@@ -119,6 +126,20 @@ public class FenceAlert {
      */
     public FenceAlert() {}
     
+    /**
+     * 实体持久化前的回调方法
+     * 自动设置告警时间和创建时间
+     */
+    @PrePersist
+    protected void onCreate() {
+        if (alertTime == null) {
+            alertTime = LocalDateTime.now();
+        }
+        if (createdTime == null) {
+            createdTime = LocalDateTime.now();
+        }
+    }
+    
     // ==================== Getter/Setter 方法 ====================
     
     public Long getId() { return id; }
@@ -138,6 +159,9 @@ public class FenceAlert {
     
     public String getAlertType() { return alertType; }
     public void setAlertType(String alertType) { this.alertType = alertType; }
+    
+    public LocalDateTime getAlertTime() { return alertTime; }
+    public void setAlertTime(LocalDateTime alertTime) { this.alertTime = alertTime; }
     
     public Boolean getIsHandled() { return isHandled; }
     public void setIsHandled(Boolean isHandled) { this.isHandled = isHandled; }

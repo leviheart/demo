@@ -216,6 +216,22 @@
 </template>
 
 <script setup>
+/**
+ * GeoFences.vue - 地理围栏管理组件
+ * 
+ * 【功能概述】
+ * 提供地理围栏的可视化管理，支持围栏创建、编辑、删除和状态切换。
+ * 使用Mapbox GL JS实现围栏的可视化展示。
+ * 
+ * 【核心功能】
+ * 1. 围栏地图展示 - 使用GeoJSON Source实现真实地理半径
+ * 2. 围栏CRUD操作 - 创建、查看、删除围栏
+ * 3. 状态管理 - 启用/禁用围栏
+ * 
+ * 【围栏渲染原理】
+ * 使用Mapbox的GeoJSON Source + circle图层，而非DOM Marker
+ * 这样围栏半径会保持真实的地理大小，不随缩放变化
+ */
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { 
@@ -236,7 +252,9 @@ const mapContainer = ref(null);
 const mapLoaded = ref(false);
 
 let map = null;
-let markers = {};
+let fenceSourceId = 'fences-source';
+let fenceLayerId = 'fences-layer';
+let fenceOutlineLayerId = 'fences-outline';
 
 const newFence = reactive({
   fenceName: '',
@@ -267,10 +285,13 @@ const rules = {
   ]
 };
 
+/**
+ * 初始化Mapbox地图
+ * 使用GeoJSON Source实现真实地理半径的围栏
+ */
 const initMap = () => {
   if (mapContainer.value) {
     try {
-      
       map = new mapboxgl.Map({
         container: mapContainer.value,
         style: 'mapbox://styles/mapbox/streets-v11',
@@ -278,17 +299,114 @@ const initMap = () => {
         zoom: 13
       });
 
-      // 添加控件
       map.addControl(new mapboxgl.NavigationControl(), 'top-right');
       map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }));
       
-      mapLoaded.value = true;
+      // 地图加载完成后添加围栏图层
+      map.on('load', () => {
+        // 添加GeoJSON数据源
+        map.addSource(fenceSourceId, {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: []
+          }
+        });
+        
+        // 添加围栏填充图层
+        map.addLayer({
+          id: fenceLayerId,
+          type: 'fill',
+          source: fenceSourceId,
+          paint: {
+            'fill-color': ['get', 'color'],
+            'fill-opacity': 0.3
+          }
+        });
+        
+        // 添加围栏边框图层
+        map.addLayer({
+          id: fenceOutlineLayerId,
+          type: 'line',
+          source: fenceSourceId,
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 2,
+            'line-opacity': 0.8
+          }
+        });
+        
+        // 点击围栏显示弹窗
+        map.on('click', fenceLayerId, (e) => {
+          const properties = e.features[0].properties;
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="popup-content">
+                <h4>${properties.name}</h4>
+                <p><strong>类型:</strong> ${properties.type}</p>
+                <p><strong>报警:</strong> ${properties.alertType}</p>
+                <p><strong>半径:</strong> ${properties.radius}米</p>
+                <p><strong>描述:</strong> ${properties.description || '无'}</p>
+              </div>
+            `)
+            .addTo(map);
+        });
+        
+        // 鼠标悬停时改变光标
+        map.on('mouseenter', fenceLayerId, () => {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', fenceLayerId, () => {
+          map.getCanvas().style.cursor = '';
+        });
+        
+        mapLoaded.value = true;
+        // 加载围栏数据
+        loadFences();
+      });
     } catch (error) {
       ElMessage.error('地图初始化失败');
     }
   }
 };
 
+/**
+ * 生成圆形围栏的GeoJSON多边形
+ * 使用Haversine公式计算圆周上的点
+ * 
+ * @param {number} centerLng - 中心经度
+ * @param {number} centerLat - 中心纬度  
+ * @param {number} radius - 半径（米）
+ * @param {number} points - 圆周上的点数
+ * @returns {Array} 坐标数组
+ */
+const createCircleCoordinates = (centerLng, centerLat, radius, points = 64) => {
+  const coords = [];
+  const earthRadius = 6371000; // 地球半径（米）
+  
+  for (let i = 0; i < points; i++) {
+    const angle = (i * 360 / points) * Math.PI / 180;
+    
+    // 计算圆周上每个点的经纬度
+    const dx = radius * Math.cos(angle);
+    const dy = radius * Math.sin(angle);
+    
+    const lat = centerLat + (dy / earthRadius) * (180 / Math.PI);
+    const lng = centerLng + (dx / earthRadius) * (180 / Math.PI) / Math.cos(centerLat * Math.PI / 180);
+    
+    coords.push([lng, lat]);
+  }
+  
+  // 闭合多边形
+  coords.push(coords[0]);
+  
+  return coords;
+};
+
+/**
+ * 加载围栏数据
+ */
 const loadFences = async () => {
   loading.value = true;
   try {
@@ -303,42 +421,46 @@ const loadFences = async () => {
   }
 };
 
+/**
+ * 在地图上渲染围栏
+ * 使用GeoJSON多边形实现真实地理半径
+ */
 const renderFencesOnMap = () => {
-  // 清除现有标记
-  Object.values(markers).forEach(marker => marker.remove());
-  markers = {};
-
-  fences.value.forEach(fence => {
-    if (fence.centerLatitude && fence.centerLongitude && fence.status === 'active') {
-      // 创建圆形容器
-      const circleElement = document.createElement('div');
-      circleElement.className = 'fence-circle';
-      circleElement.style.width = `${Math.max(fence.radius / 10, 50)}px`;
-      circleElement.style.height = `${Math.max(fence.radius / 10, 50)}px`;
-      circleElement.style.border = '2px solid #409eff';
-      circleElement.style.borderRadius = '50%';
-      circleElement.style.backgroundColor = 'rgba(64, 158, 255, 0.2)';
-      circleElement.style.boxShadow = '0 0 10px rgba(64, 158, 255, 0.5)';
+  if (!map || !map.getSource(fenceSourceId)) return;
+  
+  // 构建GeoJSON特征集合
+  const features = fences.value
+    .filter(fence => fence.status === 'active' && fence.centerLatitude && fence.centerLongitude)
+    .map(fence => {
+      const coordinates = createCircleCoordinates(
+        fence.centerLongitude,
+        fence.centerLatitude,
+        fence.radius,
+        64
+      );
       
-      const marker = new mapboxgl.Marker({
-        element: circleElement,
-        anchor: 'center'
-      })
-      .setLngLat([fence.centerLongitude, fence.centerLatitude])
-      .setPopup(
-        new mapboxgl.Popup({ offset: 25 }).setHTML(`
-          <div class="popup-content">
-            <h4>${fence.fenceName}</h4>
-            <p><strong>类型:</strong> ${fence.fenceType}</p>
-            <p><strong>报警:</strong> ${fence.alertType}</p>
-            <p><strong>描述:</strong> ${fence.description || '无'}</p>
-          </div>
-        `)
-      )
-      .addTo(map);
-
-      markers[fence.id] = marker;
-    }
+      return {
+        type: 'Feature',
+        properties: {
+          id: fence.id,
+          name: fence.fenceName,
+          type: fence.fenceType,
+          alertType: fence.alertType,
+          radius: fence.radius,
+          description: fence.description,
+          color: '#409eff'
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [coordinates]
+        }
+      };
+    });
+  
+  // 更新GeoJSON数据源
+  map.getSource(fenceSourceId).setData({
+    type: 'FeatureCollection',
+    features
   });
 };
 
@@ -393,10 +515,7 @@ const deleteFence = async (id) => {
     
     if (response.ok) {
       fences.value = fences.value.filter(fence => fence.id !== id);
-      if (markers[id]) {
-        map.removeLayer(markers[id]);
-        delete markers[id];
-      }
+      renderFencesOnMap();
       ElMessage.success('删除成功');
     } else {
       ElMessage.error('删除失败');
@@ -458,7 +577,6 @@ const resetForm = () => {
 
 onMounted(() => {
   initMap();
-  loadFences();
 });
 
 onUnmounted(() => {
@@ -566,20 +684,6 @@ onUnmounted(() => {
   border-radius: 8px;
   overflow: hidden;
   background: #f5f5f5;
-}
-
-/* Mapbox围栏圆圈样式 */
-.fence-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.8; }
 }
 
 .fence-list {
