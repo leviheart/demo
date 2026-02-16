@@ -4,13 +4,14 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "car_locations")
-public class CarLocation {
+@Table(name = "vehicle_tracks")
+public class VehicleTrack {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,10 +26,22 @@ public class CarLocation {
     @Column(name = "longitude", nullable = false)
     private Double longitude;
     
+    @Column(name = "speed")
+    private Double speed;
+    
+    @Column(name = "direction")
+    private Double direction;
+    
+    @Column(name = "record_time", nullable = false)
+    private LocalDateTime recordTime;
+    
     @Column(name = "status")
     private String status;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id")
-    private VehicleGroup vehicleGroup;
+    @PrePersist
+    protected void onCreate() {
+        if (recordTime == null) {
+            recordTime = LocalDateTime.now();
+        }
+    }
 }

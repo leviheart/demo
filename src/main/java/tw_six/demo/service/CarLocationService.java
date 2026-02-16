@@ -1,10 +1,12 @@
 package tw_six.demo.service; // 定义汽车位置业务服务类所在的包
 
-import lombok.RequiredArgsConstructor; // Lombok注解，生成必要的构造函数
-import org.springframework.stereotype.Service; // Spring注解，标记为业务服务组件
-import tw_six.demo.entity.CarLocation; // 引入汽车位置实体类
-import tw_six.demo.repository.CarLocationRepository; // 引入汽车位置数据访问接口
-import java.util.List; // Java集合框架，用于返回列表数据
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tw_six.demo.entity.CarLocation;
+import tw_six.demo.repository.CarLocationRepository;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * 汽车位置业务服务类 - 地图导航系统业务逻辑层组件
@@ -22,37 +24,39 @@ import java.util.List; // Java集合框架，用于返回列表数据
  * - 支持地图导航系统的核心位置服务功能
  */
 @Service // 标记为Spring业务服务组件，纳入Spring容器管理
-@RequiredArgsConstructor // Lombok注解，为final字段生成构造函数，支持构造函数注入
+@Transactional
 public class CarLocationService { // 汽车位置业务服务类定义
     
     // 使用final修饰确保依赖不可变性，通过构造函数注入
-    private final CarLocationRepository carLocationRepository; // 车辆位置数据访问接口依赖
+    private final CarLocationRepository carLocationRepository;
+    private final GeoFenceService geoFenceService;
     
-    /**
-     * 获取所有车辆位置信息
-     * 
-     * @return 车辆位置列表，包含所有车辆的当前位置信息
-     */
-    public List<CarLocation> getAllLocations() { // 业务方法：获取全部车辆位置
-        return carLocationRepository.findAll(); // 调用数据访问层方法获取所有车辆位置
+    @Autowired
+    public CarLocationService(CarLocationRepository carLocationRepository, GeoFenceService geoFenceService) {
+        this.carLocationRepository = carLocationRepository;
+        this.geoFenceService = geoFenceService;
     }
     
-    /**
-     * 保存或更新车辆位置信息
-     * 
-     * @param location 车辆位置对象
-     * @return 保存后的车辆位置对象
-     */
-    public CarLocation saveLocation(CarLocation location) { // 业务方法：保存车辆位置
-        return carLocationRepository.save(location); // 调用数据访问层方法保存车辆位置
+    public CarLocation saveLocation(CarLocation location) {
+        CarLocation savedLocation = carLocationRepository.save(location);
+        // 检查地理围栏违规
+        geoFenceService.checkFenceViolation(location.getCarName(), location.getLatitude(), location.getLongitude());
+        return savedLocation;
     }
     
-    /**
-     * 获取运行中的车辆列表
-     * 
-     * @return 运行中车辆位置列表
-     */
-    public List<CarLocation> getActiveCars() { // 业务方法：获取运行中车辆
-        return carLocationRepository.findByStatus("active"); // 调用自定义查询方法获取活跃车辆
+    public List<CarLocation> getAllLocations() {
+        return carLocationRepository.findAll();
+    }
+    
+    public List<CarLocation> getActiveLocations() {
+        return carLocationRepository.findByStatus("active");
+    }
+    
+    public Optional<CarLocation> getLocationById(Long id) {
+        return carLocationRepository.findById(id);
+    }
+    
+    public List<CarLocation> getLocationsByCarName(String carName) {
+        return carLocationRepository.findByCarName(carName);
     }
 }

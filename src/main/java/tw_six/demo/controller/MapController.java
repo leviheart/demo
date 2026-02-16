@@ -64,7 +64,7 @@ public class MapController { // 地图控制器类定义
      */
     @GetMapping("/active-cars") // 映射GET请求到/api/map/active-cars路径
     public List<CarLocation> getActiveCars() { // 控制器方法：获取运行中车辆
-        return carLocationService.getActiveCars(); // 调用业务层方法获取活跃车辆
+        return carLocationService.getActiveLocations(); // 调用业务层方法获取活跃车辆
     }
     
     /**

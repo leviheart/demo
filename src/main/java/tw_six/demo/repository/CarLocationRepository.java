@@ -18,6 +18,7 @@ import java.util.List; // Java集合框架，用于返回列表数据
  * 作用说明：
  * - 继承JpaRepository获得标准CRUD操作
  * - 定义自定义查询方法findByStatus用于筛选特定状态的车辆
+ * - 定义自定义查询方法findByCarName用于根据车牌号查询车辆位置
  * - 作为车辆位置数据访问的核心接口，提供位置信息的持久化能力
  * - 支持实时车辆位置更新和状态查询功能
  */
@@ -35,4 +36,13 @@ public interface CarLocationRepository extends JpaRepository<CarLocation, Long> 
      * @return 符合状态条件的车辆位置列表
      */
     List<CarLocation> findByStatus(String status); // 根据状态查询车辆位置列表
+    
+    /**
+     * 自定义查询方法：根据车牌号查找车辆位置
+     * Spring Data JPA会自动根据方法名生成对应的SQL查询
+     * 
+     * @param carName 车牌号参数
+     * @return 对应车牌号的车辆位置列表
+     */
+    List<CarLocation> findByCarName(String carName); // 根据车牌号查询车辆位置列表
 }

@@ -5,28 +5,27 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "routes")
-public class Route {
+@Table(name = "vehicle_groups")
+public class VehicleGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "start_point")
-    private String startPoint;
+    @Column(name = "group_name")
+    private String groupName;
     
-    @Column(name = "end_point")
-    private String endPoint;
-    
-    private Double distance;
-    
-    @Column(name = "route_info")
-    private String routeInfo;
+    private String description;
+    private String status;
     
     @Column(name = "created_time")
     private LocalDateTime createdTime;
+    
+    @OneToMany(mappedBy = "vehicleGroup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CarLocation> carLocations;
 }
