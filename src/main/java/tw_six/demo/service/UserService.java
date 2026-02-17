@@ -2,7 +2,7 @@ package tw_six.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import tw_six.demo.entity.User;
+import tw_six.demo.entity.UserEntity;
 import tw_six.demo.repository.UserRepository;
 import java.util.List;
 
@@ -18,9 +18,10 @@ import java.util.List;
  * ┌─────────────────────────────────────────────────────────────────────────┐
  * │ 方法名          │ 功能描述                     │ 返回值               │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ getAllUsers     │ 获取所有用户列表             │ List<User>           │
- * │ getUserById     │ 根据ID获取用户               │ User                 │
- * │ saveUser        │ 保存/更新用户                │ User                 │
+ * │ getAllUsers     │ 获取所有用户列表             │ List<UserEntity>     │
+ * │ getUserById     │ 根据ID获取用户               │ UserEntity           │
+ * │ getUserByUsername│ 根据用户名获取用户           │ UserEntity           │
+ * │ saveUser        │ 保存/更新用户                │ UserEntity           │
  * │ deleteUser      │ 删除用户                     │ void                 │
  * └─────────────────────────────────────────────────────────────────────────┘
  * 
@@ -30,15 +31,9 @@ import java.util.List;
  * - 单一职责：只负责用户相关的业务逻辑
  * 
  * 【关联文件】
- * - 控制器: tw_six.demo.controller.UserController
- * - 实体类: tw_six.demo.entity.User
+ * - 控制器: tw_six.demo.controller.AuthController
+ * - 实体类: tw_six.demo.entity.UserEntity
  * - 仓库层: tw_six.demo.repository.UserRepository
- * 
- * 【扩展建议】
- * - 添加用户名唯一性校验
- * - 添加密码加密功能
- * - 添加用户权限验证
- * - 添加用户状态管理（启用/禁用）
  * ═══════════════════════════════════════════════════════════════════════════
  */
 @Service
@@ -54,52 +49,44 @@ public class UserService {
     /**
      * 获取所有用户列表
      * 
-     * 功能说明:
-     * - 查询系统中所有注册用户
-     * - 直接委托给Repository的findAll方法
-     * 
      * @return 用户列表，如果没有用户则返回空列表
      */
-    public List<User> getAllUsers() {
+    public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
     }
     
     /**
      * 根据ID获取用户
      * 
-     * 功能说明:
-     * - 根据用户ID查询用户详情
-     * - 如果用户不存在返回null
-     * 
      * @param id 用户ID
      * @return 用户对象，不存在则返回null
      */
-    public User getUserById(Long id) {
+    public UserEntity getUserById(Long id) {
         return userRepository.findById(id).orElse(null);
+    }
+    
+    /**
+     * 根据用户名获取用户
+     * 
+     * @param username 用户名
+     * @return 用户对象，不存在则返回null
+     */
+    public UserEntity getUserByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
     
     /**
      * 保存用户
      * 
-     * 功能说明:
-     * - 保存新用户或更新已有用户
-     * - 如果user.id为null则新增，否则更新
-     * - 创建时间由JPA自动管理
-     * 
      * @param user 用户对象
-     * @return 保存后的用户对象（包含生成的ID）
+     * @return 保存后的用户对象
      */
-    public User saveUser(User user) {
+    public UserEntity saveUser(UserEntity user) {
         return userRepository.save(user);
     }
     
     /**
      * 删除用户
-     * 
-     * 功能说明:
-     * - 根据ID删除用户
-     * - 物理删除，数据将永久移除
-     * - 如果用户不存在会抛出异常
      * 
      * @param id 要删除的用户ID
      */

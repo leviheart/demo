@@ -5,7 +5,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tw_six.demo.entity.VehicleTrack;
 import tw_six.demo.repository.VehicleTrackRepository;
+import tw_six.demo.dto.TrackPlaybackDTO;
+import tw_six.demo.dto.TrackPlaybackResponse;
+
 import java.time.LocalDateTime;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -25,6 +30,7 @@ import java.util.List;
  * │ getTracksByTimeRange │ 按时间范围查询轨迹             │ List<VehicleTrack>│
  * │ getAllCarNames       │ 获取所有车辆名称               │ List<String>    │
  * │ getRecentTracks      │ 获取最近轨迹                   │ List<VehicleTrack>│
+ * │ getPlaybackData      │ 获取轨迹回放数据               │ TrackPlaybackResponse│
  * └─────────────────────────────────────────────────────────────────────────┘
  * 
  * 【数据特点】
@@ -49,6 +55,9 @@ import java.util.List;
 public class VehicleTrackService {
     
     private final VehicleTrackRepository vehicleTrackRepository;
+    
+    /** 地球半径 - 用于距离计算（单位：公里） */
+    private static final double EARTH_RADIUS = 6371.0;
     
     @Autowired
     public VehicleTrackService(VehicleTrackRepository vehicleTrackRepository) {
@@ -131,5 +140,145 @@ public class VehicleTrackService {
     public List<VehicleTrack> getRecentTracks(String carName, int minutes) {
         LocalDateTime startTime = LocalDateTime.now().minusMinutes(minutes);
         return vehicleTrackRepository.findRecentTracksByCarName(carName, startTime);
+    }
+    
+    /**
+     * 获取轨迹回放数据
+     * 
+     * 功能说明:
+     * - 获取指定车辆在时间范围内的轨迹回放数据
+     * - 计算每个轨迹点的序号、距离、进度等信息
+     * - 返回包含统计信息的完整回放数据
+     * 
+     * @param carName 车辆名称
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 轨迹回放响应数据
+     */
+    public TrackPlaybackResponse getPlaybackData(String carName, LocalDateTime startTime, LocalDateTime endTime) {
+        // 查询轨迹数据
+        List<VehicleTrack> tracks = getTracksByTimeRange(carName, startTime, endTime);
+        
+        // 转换为回放DTO
+        List<TrackPlaybackDTO> playbackDTOs = convertToPlaybackDTO(tracks);
+        
+        // 构建响应
+        return TrackPlaybackResponse.of(carName, playbackDTOs);
+    }
+    
+    /**
+     * 获取车辆最近一次行程的回放数据
+     * 
+     * @param carName 车辆名称
+     * @param hours 查询最近N小时的数据
+     * @return 轨迹回放响应数据
+     */
+    public TrackPlaybackResponse getRecentPlaybackData(String carName, int hours) {
+        LocalDateTime endTime = LocalDateTime.now();
+        LocalDateTime startTime = endTime.minusHours(hours);
+        return getPlaybackData(carName, startTime, endTime);
+    }
+    
+    /**
+     * 将轨迹实体列表转换为回放DTO列表
+     * 
+     * 计算每个轨迹点的：
+     * - 序号（从1开始）
+     * - 距起点累计距离
+     * - 回放进度百分比
+     * - 与上一个点的时间间隔
+     * 
+     * @param tracks 轨迹实体列表
+     * @return 回放DTO列表
+     */
+    private List<TrackPlaybackDTO> convertToPlaybackDTO(List<VehicleTrack> tracks) {
+        List<TrackPlaybackDTO> dtos = new ArrayList<>();
+        
+        if (tracks.isEmpty()) {
+            return dtos;
+        }
+        
+        double totalDistance = 0;
+        LocalDateTime prevTime = null;
+        double[] prevCoord = null;
+        
+        for (int i = 0; i < tracks.size(); i++) {
+            VehicleTrack track = tracks.get(i);
+            TrackPlaybackDTO dto = new TrackPlaybackDTO(
+                track.getId(),
+                track.getCarName(),
+                track.getLatitude(),
+                track.getLongitude(),
+                track.getSpeed(),
+                track.getDirection(),
+                track.getRecordTime(),
+                track.getStatus()
+            );
+            
+            // 设置序号
+            dto.setSequence(i + 1);
+            
+            // 计算累计距离
+            if (prevCoord != null) {
+                double segmentDist = calculateDistance(
+                    prevCoord[0], prevCoord[1],
+                    track.getLatitude(), track.getLongitude()
+                );
+                totalDistance += segmentDist;
+            }
+            dto.setDistance(totalDistance);
+            
+            // 计算时间间隔
+            if (prevTime != null) {
+                long seconds = Duration.between(prevTime, track.getRecordTime()).getSeconds();
+                dto.setTimeInterval(seconds);
+            }
+            
+            prevCoord = new double[]{track.getLatitude(), track.getLongitude()};
+            prevTime = track.getRecordTime();
+            
+            dtos.add(dto);
+        }
+        
+        // 设置总距离和进度
+        double finalTotalDistance = totalDistance;
+        dtos.forEach(dto -> {
+            dto.setTotalDistance(finalTotalDistance);
+            if (finalTotalDistance > 0) {
+                dto.setProgress((dto.getDistance() / finalTotalDistance) * 100);
+            } else {
+                dto.setProgress(0.0);
+            }
+        });
+        
+        return dtos;
+    }
+    
+    /**
+     * 计算两点之间的距离（Haversine公式）
+     * 
+     * 使用球面距离公式计算两个GPS坐标点之间的距离。
+     * 
+     * @param lat1 点1纬度
+     * @param lon1 点1经度
+     * @param lat2 点2纬度
+     * @param lon2 点2经度
+     * @return 距离（单位：米）
+     */
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        // 将角度转换为弧度
+        double lat1Rad = Math.toRadians(lat1);
+        double lat2Rad = Math.toRadians(lat2);
+        double deltaLat = Math.toRadians(lat2 - lat1);
+        double deltaLon = Math.toRadians(lon2 - lon1);
+        
+        // Haversine公式
+        double a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+                   Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                   Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        // 返回距离（米）
+        return EARTH_RADIUS * c * 1000;
     }
 }

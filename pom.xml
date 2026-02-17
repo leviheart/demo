@@ -87,6 +87,56 @@
 			<scope>provided</scope>
 		</dependency>
 		
+		<!-- Spring Boot WebSocket启动器 - 实时通信支持 -->
+		<!-- 提供WebSocket协议支持，实现服务器主动推送消息 -->
+		<!-- 用于实时车辆位置更新、告警通知等场景 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+		
+		<!-- Spring Boot Security启动器 - 安全框架支持 -->
+		<!-- 提供认证和授权功能，保护API接口安全 -->
+		<!-- 支持JWT令牌认证、角色权限控制 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		
+		<!-- JWT支持库 - JSON Web Token实现 -->
+		<!-- 用于生成和验证JWT令牌 -->
+		<!-- 实现无状态认证机制 -->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.11.5</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.11.5</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.11.5</version>
+			<scope>runtime</scope>
+		</dependency>
+		
+		<!-- Apache POI - Excel文件处理 -->
+		<!-- 用于生成Excel报表导出功能 -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.3</version>
+		</dependency>
+		
 		<!-- Spring Boot测试启动器 - 测试支持 -->
 		<!-- 提供JUnit、Mockito等测试框架集成 -->
 		<!-- 仅在测试时使用 -->

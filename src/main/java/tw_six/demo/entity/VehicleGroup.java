@@ -5,31 +5,199 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 车辆分组实体类 - 用于对车辆进行分类管理
+ * 车辆分组实体类 - JPA实体映射核心示例
  * 
- * 【功能概述】
- * 车辆分组功能允许管理员将车辆按部门、用途、区域等维度进行分类，
- * 便于批量管理和监控不同类型的车辆。
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第一章：什么是JPA实体？】
+ * ═══════════════════════════════════════════════════════════════════════════════
  * 
- * 【数据库映射】
- * - 表名：vehicle_groups
- * - 主键：id（自增长）
- * - 关联表：car_locations（分组下的车辆）
+ * JPA (Java Persistence API) 是Java持久化规范，用于将Java对象映射到数据库表。
  * 
- * 【业务场景】
- * 1. 部门分组：按公司部门划分车辆（如：销售部、物流部、管理层）
- * 2. 区域分组：按服务区域划分车辆（如：东区、西区、北区）
- * 3. 用途分组：按车辆用途划分（如：货运车、商务车、工程车）
- * 4. 权限控制：不同用户只能查看特定分组的车辆
+ * 为什么使用JPA？
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ 传统JDBC方式                    │ JPA方式                                │
+ * ├────────────────────────────────────────────────────────────────────────────┤
+ * │ 手写SQL语句                     │ 自动生成SQL                            │
+ * │ 手动映射ResultSet到对象          │ 自动映射（ORM）                        │
+ * │ 需要处理连接管理                 │ 容器自动管理                           │
+ * │ SQL注入风险                     │ 参数化查询，更安全                      │
+ * │ 数据库方言差异大                 │ 屏蔽数据库差异                          │
+ * └────────────────────────────────────────────────────────────────────────────┘
  * 
- * 【关联关系】
- * - 一对多：VehicleGroup -> CarLocation（一个分组包含多辆车）
+ * 实体类 = 数据库表的一行记录
+ * - 类名 → 表名（默认，可通过@Table指定）
+ * - 字段 → 列（默认，可通过@Column指定）
+ * - 对象 → 一行记录
  * 
- * 【使用示例】
- * VehicleGroup group = new VehicleGroup();
- * group.setGroupName("物流部车辆");
- * group.setDescription("负责公司货物运输的车辆");
- * group.setStatus("active");
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第二章：注解详解】
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * @Entity - 标记这是一个JPA实体类
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ 作用：告诉Hibernate/JPA这个类需要映射到数据库表                              │
+ * │ 位置：类声明上方                                                            │
+ * │ 必须条件：                                                                  │
+ * │   1. 必须有无参构造函数（Hibernate通过反射创建对象）                          │
+ * │   2. 必须有主键（@Id注解）                                                  │
+ * │   3. 类不能是final（Hibernate需要继承创建代理）                              │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * @Table - 指定映射的数据库表
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ 属性：                                                                      │
+ * │   name = "vehicle_groups" - 指定表名                                       │
+ * │   schema = "xxx" - 指定数据库schema                                        │
+ * │   uniqueConstraints - 定义唯一约束                                          │
+ * │                                                                             │
+ * │ 为什么表名用下划线？                                                        │
+ * │   Java命名习惯：camelCase (groupName)                                      │
+ * │   数据库命名习惯：snake_case (group_name)                                   │
+ * │   使用下划线是数据库设计的最佳实践，避免不同数据库的保留字冲突                  │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第三章：主键生成策略】
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * @Id - 标记主键字段
+ * @GeneratedValue - 主键生成策略
+ * 
+ * GenerationType枚举值：
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ IDENTITY   - 数据库自增（MySQL的AUTO_INCREMENT，SQL Server的IDENTITY）      │
+ * │              优点：简单，数据库保证唯一性                                    │
+ * │              缺点：不支持批量插入获取ID，依赖数据库                           │
+ * │                                                                             │
+ * │ SEQUENCE  - 数据库序列（Oracle、PostgreSQL支持）                            │
+ * │              优点：高性能，支持批量插入                                      │
+ * │              缺点：MySQL不支持                                              │
+ * │                                                                             │
+ * │ TABLE     - 使用单独的表模拟序列                                            │
+ * │              优点：跨数据库通用                                              │
+ * │              缺点：性能最差                                                  │
+ * │                                                                             │
+ * │ AUTO      - JPA自动选择（默认）                                             │
+ * │              根据数据库方言自动选择IDENTITY或SEQUENCE                        │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * 本项目选择IDENTITY的原因：
+ * 1. 使用H2/MySQL数据库，都支持自增主键
+ * 2. 简单直观，适合单机应用
+ * 3. 不需要额外的序列对象
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第四章：字段映射】
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * @Column - 指定列的映射属性
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ 常用属性：                                                                  │
+ * │   name = "group_name"     - 列名（默认使用字段名）                          │
+ * │   nullable = false        - 是否允许NULL（默认true）                        │
+ * │   unique = true           - 是否唯一（默认false）                           │
+ * │   length = 50             - 字符串长度（默认255）                           │
+ * │   columnDefinition = "TEXT" - 自定义DDL                                     │
+ * │                                                                             │
+ * │ 不加@Column注解会怎样？                                                     │
+ * │   JPA会使用默认映射：列名=字段名，允许NULL，不唯一                           │
+ * │   建议显式添加，提高代码可读性                                               │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第五章：关联关系】
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * @OneToMany - 一对多关系映射
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ 场景：一个分组包含多辆车                                                    │
+ * │                                                                             │
+ * │ mappedBy = "vehicleGroup"                                                  │
+ * │   - 指定关系由对方（CarLocation）的vehicleGroup字段维护                      │
+ * │   - 避免创建中间表，使用外键关联                                             │
+ * │                                                                             │
+ * │ cascade = CascadeType.ALL                                                  │
+ * │   - 级联操作：对分组操作时，同时影响关联的车辆                               │
+ * │   - ALL包含：PERSIST, MERGE, REMOVE, REFRESH, DETACH                       │
+ * │   - 注意：删除分组时会同时删除分组下的车辆！                                  │
+ * │                                                                             │
+ * │ fetch = FetchType.LAZY                                                     │
+ * │   - 懒加载：查询分组时不立即加载车辆列表                                     │
+ * │   - 只有调用getCarLocations()时才查询数据库                                 │
+ * │   - 对比EAGER（急加载）：立即加载所有关联数据                                │
+ * │   - 为什么用LAZY？性能优化，避免N+1查询问题                                  │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * 关联关系类型：
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ @OneToOne   - 一对一  （用户-用户详情）                                     │
+ * │ @OneToMany  - 一对多  （分组-车辆）                                         │
+ * │ @ManyToOne  - 多对一  （车辆-分组）                                         │
+ * │ @ManyToMany - 多对多  （学生-课程）需要中间表                               │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第六章：Java类型选择】
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * 为什么用Long而不是long？
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ Long   - 包装类型，可以为null                                              │
+ * │ long   - 基本类型，默认值0，不能为null                                      │
+ * │                                                                             │
+ * │ 数据库中NULL的含义：未知、未设置                                            │
+ * │ 使用Long可以正确表达"未设置"状态                                            │
+ * │                                                                             │
+ * │ 新建对象时，id = null 表示尚未持久化                                        │
+ * │ 保存后，id被赋值为数据库生成的值                                             │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * 为什么用LocalDateTime而不是Date？
+ * ┌────────────────────────────────────────────────────────────────────────────┐
+ * │ Date (java.util.Date)                                                      │
+ * │   - JDK 1.0引入，设计有缺陷                                                 │
+ * │   - 可变对象，线程不安全                                                    │
+ * │   - 月份从0开始（0=一月）                                                   │
+ * │                                                                             │
+ * │ LocalDateTime (java.time.LocalDateTime)                                    │
+ * │   - JDK 8引入，现代日期时间API                                              │
+ * │   - 不可变对象，线程安全                                                    │
+ * │   - API更直观：getYear(), getMonthValue()                                  │
+ * │   - 不包含时区信息，适合本地时间                                             │
+ * │                                                                             │
+ * │ 其他选择：                                                                  │
+ * │   LocalDate - 只有日期（生日）                                              │
+ * │   LocalTime - 只有时间（闹钟）                                              │
+ * │   ZonedDateTime - 带时区（跨国业务）                                        │
+ * │   Instant - 时间戳（日志记录）                                              │
+ * └────────────────────────────────────────────────────────────────────────────┘
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 【第七章：业务场景】
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * 车辆分组功能的应用场景：
+ * 
+ * 1. 部门分组
+ *    - 销售部车辆：用于客户拜访
+ *    - 物流部车辆：用于货物运输
+ *    - 管理层专车：高管使用
+ * 
+ * 2. 区域分组
+ *    - 华北区车队：服务北京、天津
+ *    - 华东区车队：服务上海、南京
+ *    - 华南区车队：服务广州、深圳
+ * 
+ * 3. 用途分组
+ *    - 货运车辆：运输货物
+ *    - 商务车辆：接待客户
+ *    - 工程车辆：施工使用
+ * 
+ * 4. 权限控制
+ *    - 不同用户只能查看特定分组的车辆
+ *    - 实现数据隔离和安全控制
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════════
  */
 @Entity
 @Table(name = "vehicle_groups")
@@ -37,6 +205,16 @@ public class VehicleGroup {
     
     /**
      * 主键ID - 数据库自动生成的唯一标识符
+     * 
+     * 为什么需要主键？
+     * - 唯一标识每条记录
+     * - 建立关联关系的外键引用
+     * - 提高查询效率（主键自动创建索引）
+     * 
+     * 为什么用自增而不是UUID？
+     * - 自增ID：占用空间小（8字节），查询快，索引效率高
+     * - UUID：占用空间大（36字符），索引效率低，但分布式系统必须用
+     * - 本项目是单机应用，使用自增ID更合适
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,62 +222,187 @@ public class VehicleGroup {
     
     /**
      * 分组名称 - 分组的显示名称
-     * 示例："物流部车辆"、"销售团队"、"管理层专车"
-     * 用于在界面上展示和识别分组
+     * 
+     * 数据库设计：
+     * - 类型：VARCHAR(255)
+     * - 建议：实际项目中应指定长度，如 @Column(length = 50)
+     * - 索引：如果经常按名称查询，应添加索引
+     * 
+     * 业务约束：
+     * - 不能为空
+     * - 应该唯一（同一系统中不能有重名分组）
+     * - 建议长度：2-30个字符
      */
     @Column(name = "group_name")
     private String groupName;
     
     /**
      * 分组描述 - 对分组用途的详细说明
-     * 示例："负责华东区域货物运输的车辆，共15辆"
+     * 
+     * 设计考虑：
+     * - 可选字段，允许为空
+     * - 如果描述很长，应使用TEXT类型
+     * - @Column(columnDefinition = "TEXT")
      */
     private String description;
     
     /**
      * 分组状态 - 控制分组是否生效
-     * - "active"：启用 - 分组正常使用
-     * - "inactive"：禁用 - 暂停使用该分组
+     * 
+     * 为什么用String而不是Enum？
+     * ┌────────────────────────────────────────────────────────────────────────┐
+     * │ String                          │ Enum                                 │
+     * ├────────────────────────────────────────────────────────────────────────┤
+     * │ 灵活，可存储任意值               │ 类型安全，编译时检查                  │
+     * │ 数据库存储简单                   │ 需要@Enumerated注解                  │
+     * │ 前端传值方便                     │ 前端需要转换                          │
+     * │ 可扩展性好                       │ 新增值需要修改代码                    │
+     * └────────────────────────────────────────────────────────────────────────┘
+     * 
+     * 本项目选择String的原因：
+     * 1. 简单直接，前端传"active"/"inactive"即可
+     * 2. 便于扩展，未来可以添加更多状态
+     * 3. 数据库存储更直观
+     * 
+     * 如果使用Enum：
+     * public enum Status { ACTIVE, INACTIVE }
+     * @Enumerated(EnumType.STRING)
+     * private Status status;
      */
     private String status;
     
     /**
      * 创建时间 - 分组记录的创建时间
-     * 自动记录分组创建的时间戳
+     * 
+     * 为什么需要创建时间？
+     * - 审计追踪：知道记录何时创建
+     * - 数据分析：统计分组创建趋势
+     * - 排序展示：按时间倒序显示
+     * 
+     * 自动填充方式：
+     * 1. @PrePersist - JPA生命周期回调
+     *    @PrePersist
+     *    public void prePersist() {
+     *        this.createdTime = LocalDateTime.now();
+     *    }
+     * 
+     * 2. @CreatedDate - Spring Data JPA
+     *    @EntityListeners(AuditingEntityListener.class)
+     *    @CreatedDate
+     *    private LocalDateTime createdTime;
+     * 
+     * 3. 手动设置（本项目采用）
+     *    group.setCreatedTime(LocalDateTime.now());
      */
     @Column(name = "created_time")
     private LocalDateTime createdTime;
     
     /**
      * 分组车辆列表 - 该分组下的所有车辆
-     * 使用一对多关系映射，级联操作
-     * 注意：使用懒加载（LAZY）优化性能
+     * 
+     * 关联关系详解：
+     * ┌────────────────────────────────────────────────────────────────────────┐
+     │ 数据库层面：                                                            │
+     │   vehicle_groups表          car_locations表                            │
+     │   ┌─────────────┐           ┌─────────────────┐                        │
+     │   │ id (PK)     │◄──────────│ vehicle_group_id│ (FK)                   │
+     │   │ group_name  │           │ car_name        │                        │
+     │   │ ...         │           │ ...             │                        │
+     │   └─────────────┘           └─────────────────┘                        │
+     │                                                                         │
+     │ Java层面：                                                              │
+     │   VehicleGroup对象 ──包含──▶ List<CarLocation>                         │
+     └────────────────────────────────────────────────────────────────────────┘
+     * 
+     * mappedBy详解：
+     * - "vehicleGroup"是CarLocation类中的字段名
+     * - 表示关系由CarLocation端维护（外键在car_locations表）
+     * - 如果不写mappedBy，JPA会创建中间表
+     * 
+     * 懒加载注意事项：
+     * - 必须在事务内访问懒加载属性
+     * - 或者在Service层用@Transactional
+     * - 否则会抛出LazyInitializationException
      */
     @OneToMany(mappedBy = "vehicleGroup", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CarLocation> carLocations;
     
     /**
-     * 默认构造函数
+     * 默认构造函数 - JPA必需
+     * 
+     * 为什么必须有无参构造函数？
+     * 1. Hibernate通过反射创建对象：clazz.newInstance()
+     * 2. 反射调用的是无参构造函数
+     * 3. 如果只定义有参构造函数，JPA会报错
+     * 
+     * 构造函数访问修饰符：
+     * - public：任何地方都可以创建对象
+     * - protected：只有子类和同包可以创建
+     * - private：只有JPA可以创建（推荐，防止误用）
+     * 
+     * 最佳实践：
+     * protected VehicleGroup() {} // 强制使用Builder或静态工厂方法
      */
     public VehicleGroup() {}
     
     // ==================== Getter/Setter 方法 ====================
+    // 
+    // 为什么需要Getter/Setter？
+    // 1. 封装：隐藏内部实现，控制访问权限
+    // 2. 验证：可以在setter中添加数据验证
+    // 3. 兼容：JPA、Jackson等框架需要
+    // 4. 框架集成：Spring MVC自动绑定需要
+    //
+    // 替代方案：
+    // - Lombok @Data/@Getter/@Setter：自动生成，减少样板代码
+    // - 本项目不使用Lombok是为了让代码更清晰，便于学习
+    // ====================
     
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() { 
+        return id; 
+    }
     
-    public String getGroupName() { return groupName; }
-    public void setGroupName(String groupName) { this.groupName = groupName; }
+    public void setId(Long id) { 
+        this.id = id; 
+    }
     
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getGroupName() { 
+        return groupName; 
+    }
     
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public void setGroupName(String groupName) { 
+        this.groupName = groupName; 
+    }
     
-    public LocalDateTime getCreatedTime() { return createdTime; }
-    public void setCreatedTime(LocalDateTime createdTime) { this.createdTime = createdTime; }
+    public String getDescription() { 
+        return description; 
+    }
     
-    public List<CarLocation> getCarLocations() { return carLocations; }
-    public void setCarLocations(List<CarLocation> carLocations) { this.carLocations = carLocations; }
+    public void setDescription(String description) { 
+        this.description = description; 
+    }
+    
+    public String getStatus() { 
+        return status; 
+    }
+    
+    public void setStatus(String status) { 
+        this.status = status; 
+    }
+    
+    public LocalDateTime getCreatedTime() { 
+        return createdTime; 
+    }
+    
+    public void setCreatedTime(LocalDateTime createdTime) { 
+        this.createdTime = createdTime; 
+    }
+    
+    public List<CarLocation> getCarLocations() { 
+        return carLocations; 
+    }
+    
+    public void setCarLocations(List<CarLocation> carLocations) { 
+        this.carLocations = carLocations; 
+    }
 }

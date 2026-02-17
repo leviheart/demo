@@ -3,17 +3,18 @@
   App.vue - 智能车辆监控系统主入口组件
 ================================================================================
 
-【功能概述】
+  【功能概述】
   这是Vue3应用的主入口组件，负责整体页面布局和导航菜单。
   采用单页应用(SPA)架构，通过条件渲染切换不同功能模块。
 
-【组件结构】
+  【组件结构】
   ┌─────────────────────────────────────────────────────────────────────────┐
   │ 顶部导航栏 (el-menu)                                                    │
   │ ├── 品牌标识区                                                          │
   │ └── 导航菜单项                                                          │
   │     ├── 仪表板 (dashboard)                                              │
   │     ├── 地图监控 (map)                                                  │
+  │     ├── 轨迹回放 (playback)                                             │
   │     ├── 车辆分组 (groups)                                               │
   │     ├── 报警记录 (alerts)                                               │
   │     └── 地理围栏 (fences)                                               │
@@ -22,22 +23,23 @@
   │ └── 动态组件切换 (根据currentView显示不同组件)                           │
   └─────────────────────────────────────────────────────────────────────────┘
 
-【技术栈】
+  【技术栈】
   - Vue 3 Composition API (script setup语法)
   - Element Plus UI组件库
   - 响应式设计，支持移动端
 
-【关联组件】
+  【关联组件】
   - TechDashboard.vue: 技术仪表板
   - MapView.vue: 地图监控视图
+  - TrackPlayback.vue: 轨迹回放视图
   - VehicleGroups.vue: 车辆分组管理
   - FenceAlerts.vue: 围栏告警记录
   - GeoFences.vue: 地理围栏管理
 
-【状态管理】
+  【状态管理】
   使用ref管理当前视图状态，无全局状态管理器(可扩展使用Pinia)
 
-【样式特点】
+  【样式特点】
   - 渐变背景色
   - 毛玻璃效果(backdrop-filter)
   - 响应式布局适配移动端
@@ -69,6 +71,14 @@
           <el-icon><MapLocation /></el-icon>
           <span>地图监控</span>
         </el-menu-item>
+        <el-menu-item index="playback">
+          <el-icon><VideoPlay /></el-icon>
+          <span>轨迹回放</span>
+        </el-menu-item>
+        <el-menu-item index="analysis">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>驾驶分析</span>
+        </el-menu-item>
         <el-menu-item index="groups">
           <el-icon><Collection /></el-icon>
           <span>车辆分组</span>
@@ -88,9 +98,11 @@
     <main class="main-content">
       <TechDashboard v-if="currentView === 'dashboard'" />
       <MapView v-else-if="currentView === 'map'" />
+      <TrackPlayback v-else-if="currentView === 'playback'" />
       <VehicleGroups v-else-if="currentView === 'groups'" />
       <FenceAlerts v-else-if="currentView === 'alerts'" />
       <GeoFences v-else-if="currentView === 'fences'" />
+      <DrivingAnalysis v-else-if="currentView === 'analysis'" />
     </main>
   </div>
 </template>
@@ -106,9 +118,12 @@
 import { ref } from 'vue';
 import TechDashboard from './components/TechDashboard.vue';
 import MapView from './components/MapView.vue';
+import TrackPlayback from './components/TrackPlayback.vue';
 import VehicleGroups from './components/VehicleGroups.vue';
 import FenceAlerts from './components/FenceAlerts.vue';
 import GeoFences from './components/GeoFences.vue';
+import DrivingAnalysis from './components/DrivingAnalysis.vue';
+import { VideoPlay, DataAnalysis } from '@element-plus/icons-vue';
 
 /**
  * 当前视图状态

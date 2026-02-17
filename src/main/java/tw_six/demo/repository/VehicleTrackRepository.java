@@ -10,7 +10,14 @@ import java.util.List;
 
 @Repository
 public interface VehicleTrackRepository extends JpaRepository<VehicleTrack, Long> {
-    
+
+    /**
+     * 查询所有轨迹（按时间升序）
+     * 
+     * @return 所有轨迹记录列表
+     */
+    List<VehicleTrack> findAllByOrderByRecordTimeAsc();
+
     List<VehicleTrack> findByCarNameOrderByRecordTimeAsc(String carName);
     
     List<VehicleTrack> findByCarNameAndRecordTimeBetweenOrderByRecordTimeAsc(

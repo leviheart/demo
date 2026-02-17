@@ -87,6 +87,15 @@ public class FenceAlert {
     private String alertType;
     
     /**
+     * 告警严重程度 - 表示告警的紧急程度
+     * - "high"：高严重程度，需要立即处理
+     * - "medium"：中等严重程度
+     * - "low"：低严重程度
+     */
+    @Column(name = "severity")
+    private String severity;
+    
+    /**
      * 告警时间 - 告警触发的时间
      * 与created_time相同，用于兼容数据库字段
      */
@@ -159,6 +168,9 @@ public class FenceAlert {
     
     public String getAlertType() { return alertType; }
     public void setAlertType(String alertType) { this.alertType = alertType; }
+    
+    public String getSeverity() { return severity; }
+    public void setSeverity(String severity) { this.severity = severity; }
     
     public LocalDateTime getAlertTime() { return alertTime; }
     public void setAlertTime(LocalDateTime alertTime) { this.alertTime = alertTime; }
